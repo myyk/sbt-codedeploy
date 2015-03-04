@@ -4,5 +4,5 @@ To add to your project:
 
     addSbtPlugin("com.gilt" % "sbt-codedeploy" % "0.1-SNAPSHOT")
 
-See [sample-app](sbt-native-packager-example/README.md) for an example of how to
+See [sbt-native-packager-example](sbt-native-packager-example/README.md) for an example of how to
 use with sbt-native-packager.
