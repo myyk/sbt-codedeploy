@@ -135,7 +135,6 @@ object CodeDeployPlugin extends AutoPlugin {
         (streams in CodeDeploy).value.log
       )
     }
-    // use inConfig to override shared settingKeys
   )
 
   private val deployArgsParser = {
