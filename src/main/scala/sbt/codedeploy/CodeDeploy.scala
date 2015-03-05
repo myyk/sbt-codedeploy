@@ -69,6 +69,8 @@ object CodeDeployKeys {
   val codedeployScriptMappings = taskKey[Seq[CodeDeployScriptMapping]]("Mappings for code deploy hook scripts.")
   val codedeployStage = taskKey[Unit]("Stage a Code Deploy revision in the staging directory.")
   val codedeployStagingDirectory = taskKey[File]("Directory used to stage a Code Deploy revision.")
+  val codedeployZip = taskKey[Unit]("Create a zip from a staged deployment.")
+  val codedeployZipFile = taskKey[File]("Location of the deployment zip.")
 
   val codedeployCreateDeployment = inputKey[Unit]("Deploy to the given deployment group.")
 }
@@ -77,7 +79,7 @@ object CodeDeployPlugin extends AutoPlugin {
   import CodeDeployKeys._
 
   override def projectSettings = Seq(
-    codedeployStagingDirectory := target.value / "codedeploy" / "stage",
+    codedeployStagingDirectory := (target in CodeDeploy).value / "stage",
     codedeployIgnoreApplicationStopFailures := false,
     codedeployScriptMappings := {
       val scripts = (sourceDirectory in CodeDeploy).value
@@ -117,8 +119,10 @@ object CodeDeployPlugin extends AutoPlugin {
       ).getDeploymentId
     },
     codedeployStage := {
+      val deployment = (codedeployStagingDirectory in CodeDeploy).value
+      streams.value.log.info(s"Staging deployment in ${deployment}...")
       stageRevision(
-        deployment = (codedeployStagingDirectory in CodeDeploy).value,
+        deployment = deployment,
         name = (name in CodeDeploy).value,
         version = (version in CodeDeploy).value,
         content = (codedeployContentMappings in CodeDeploy).value,
@@ -126,15 +130,27 @@ object CodeDeployPlugin extends AutoPlugin {
       )
     },
     codedeployPush := {
-      (codedeployStage in CodeDeploy).value
+      (codedeployZip in CodeDeploy).value
+      val zipFile = (codedeployZipFile in CodeDeploy).value
       pushImpl(
-        (codedeployStagingDirectory in CodeDeploy).value,
+        zipFile,
         (codedeployBucket in CodeDeploy).value,
         (name in CodeDeploy).value,
         (version in CodeDeploy).value,
         (streams in CodeDeploy).value.log
       )
-    }
+    },
+    codedeployZip := {
+      (codedeployStage in CodeDeploy).value
+      val deployment = (codedeployStagingDirectory in CodeDeploy).value
+      val zipFile = (codedeployZipFile in CodeDeploy).value
+      streams.value.log.info(s"Generating deployment zip in ${zipFile}...")
+      IO.zip(sbt.Path.allSubpaths(deployment), zipFile)
+    },
+    codedeployZipFile := {
+      (target in CodeDeploy).value / s"${name.value}-${version.value}.zip"
+    },
+    target in CodeDeploy := target.value / "codedeploy"
   )
 
   private val deployArgsParser = {
@@ -175,6 +191,11 @@ object CodeDeployPlugin extends AutoPlugin {
     ignoreApplicationStopFailures: Boolean,
     log: Logger
   ): CreateDeploymentResult = {
+    val s3Loc = s3Location(s3Bucket, name, version)
+    log.info(s"Creating deployment using revision at ${s3Loc}")
+    if (ignoreApplicationStopFailures) {
+      log.warn(s"This deployment will ignore ApplicationStop failures.")
+    }
     val codeDeployClient = new AmazonCodeDeployClient
     val result = codeDeployClient.createDeployment(
       new CreateDeploymentRequest()
@@ -182,38 +203,42 @@ object CodeDeployPlugin extends AutoPlugin {
         .withDeploymentGroupName(groupName)
         .withRevision(new RevisionLocation()
         .withRevisionType(RevisionLocationType.S3)
-        .withS3Location(s3Location(s3Bucket, name, version)))
+        .withS3Location(s3Loc))
         .withIgnoreApplicationStopFailures(ignoreApplicationStopFailures))
     log.info(s"Created deployment ${result.getDeploymentId}")
     result
   }
 
   private def pushImpl(
-    deployment: File,
+    zipFile: File,
     s3Bucket: String,
     name: String,
     version: String,
     log: Logger
   ): S3Location = {
-    IO.withTemporaryFile(s"${name}-${version}-codedeploy", ".zip") { zipFile =>
-      IO.zip(sbt.Path.allSubpaths(deployment), zipFile)
-      val s3Client = new AmazonS3Client
-      val putObjectResult = s3Client.putObject(
-        new PutObjectRequest(s3Bucket, s3Key(name, version), zipFile))
-      val codeDeployClient = new AmazonCodeDeployClient
-      val s3Loc = s3Location(s3Bucket, name, version)
-        .withETag(putObjectResult.getETag)
-      codeDeployClient.registerApplicationRevision(
-        new RegisterApplicationRevisionRequest()
-          .withApplicationName(name)
-          .withRevision(new RevisionLocation()
-            .withRevisionType(RevisionLocationType.S3)
-            .withS3Location(s3Loc)))
+    val s3Client = new AmazonS3Client
 
-      log.info(s"Uploaded bundle ${s3Loc}")
+    val key = s3Key(name, version)
+    // the upload can be slow, so be sure to let
+    // the user know it is happening
+    log.info(s"Uploading zip to s3://${s3Bucket}/${key}...")
 
-      s3Loc
-    }
+    val putObjectResult = s3Client.putObject(
+      new PutObjectRequest(s3Bucket, key, zipFile))
+    val codeDeployClient = new AmazonCodeDeployClient
+    val s3Loc = s3Location(s3Bucket, name, version)
+      .withETag(putObjectResult.getETag)
+
+    codeDeployClient.registerApplicationRevision(
+      new RegisterApplicationRevisionRequest()
+        .withApplicationName(name)
+        .withRevision(new RevisionLocation()
+          .withRevisionType(RevisionLocationType.S3)
+          .withS3Location(s3Loc)))
+
+    log.info(s"Uploaded bundle ${s3Loc}")
+
+    s3Loc
   }
 
   private def stageRevision(
