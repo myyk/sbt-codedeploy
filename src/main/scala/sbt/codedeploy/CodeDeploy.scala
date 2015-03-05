@@ -16,7 +16,7 @@ case class CodeDeployContentMapping(
   mode: String,
   owner: String,
   group: String,
-  symlinkTarget: Option[String]
+  symlinkSource: Option[String]
 ) {
   def copyable: Boolean = {
     // instead of copying the directory we have to
@@ -30,7 +30,7 @@ case class CodeDeployContentMapping(
     else true
   }
 
-  def isSymlink = symlinkTarget.isDefined
+  def isSymlink = symlinkSource.isDefined
 
   def isDirectory = localSource.isDirectory
 }
@@ -390,7 +390,7 @@ object CodeDeployPlugin extends AutoPlugin {
     // it in the files section
     content.foreach { content =>
       if (content.isSymlink) {
-        sh ++= s"ln --no-dereference -sf ${content.destination} ${content.symlinkTarget.get}\n"
+        sh ++= s"ln --no-dereference -sf ${content.symlinkSource.get} ${content.destination}\n"
       } else if (content.isDirectory) {
         sh ++= s"mkdir -p ${content.destination}\n"
       }

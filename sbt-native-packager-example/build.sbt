@@ -12,20 +12,31 @@ enablePlugins(CodeDeployPlugin)
 codedeployBucket := "gilt-direct-deployments"
 
 codedeployContentMappings := {
-  val symlinks = linuxPackageSymlinks.value
-  linuxPackageMappings.value.flatMap { mapping =>
+  val buffer = collection.mutable.ArrayBuffer.empty[CodeDeployContentMapping]
+
+  linuxPackageMappings.value.foreach { mapping =>
     val fileData = mapping.fileData
-    mapping.mappings.map { case (from, to) =>
-      CodeDeployContentMapping(
+    mapping.mappings.foreach { case (from, to) =>
+      buffer += CodeDeployContentMapping(
         localSource = from,
         destination = to,
         mode = fileData.permissions,
         owner = fileData.user,
         group = fileData.group,
-        symlinkTarget = symlinks.collectFirst {
-          case link if link.link == to => link.link
-        }
+        symlinkSource = None
       )
     }
   }
+
+  linuxPackageSymlinks.value.foreach { link =>
+    buffer += CodeDeployContentMapping(
+      localSource = file("/dev/null"),
+      destination = link.link,
+      mode = "0600",
+      owner = "root",
+      group = "root",
+      symlinkSource = Some(link.destination)
+    )
+  }
+  buffer
 }
