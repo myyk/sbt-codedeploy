@@ -118,7 +118,7 @@ To create a deployment the `codeDeployCreateDeployment` task needs the name of t
 
 You may want to create a new alias such as `deploy-test` to clean up the verbose syntax for your specific use case.
 
-Note this call does not block for the deployment to finish.
+**This call does not block for the deployment to finish.**
 
 ## Push
 
