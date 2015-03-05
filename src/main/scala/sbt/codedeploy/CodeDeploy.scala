@@ -309,12 +309,9 @@ object CodeDeployPlugin extends AutoPlugin {
         val destination = {
           val tmp = file(path)
           val parent = tmp.getParent
-          if (parent == null) {
-            // should not happen because we are excluding directories above...
-            assert(false, s"unexpected mapping to root ${content}")
-          } else {
-            parent
-          }
+          // should not happen because we are excluding directories above...
+          assert(parent != null, s"unexpected mapping to root ${content}")
+          parent
         }
         appspec ++= s"""  - source: ${ContentPrefix}${path}\n"""
         appspec ++= s"""    destination: ${destination}\n"""
