@@ -324,10 +324,20 @@ object CodeDeployPlugin extends AutoPlugin {
     content: Seq[CodeDeployContentMapping]
   ): Unit = {
     content.foreach { content =>
-      appspec ++= s"""  - object: ${content.destination}\n"""
-      appspec ++= s"""    mode: "${content.mode}"\n"""
-      appspec ++= s"""    owner: ${content.owner}\n"""
-      appspec ++= s"""    group: ${content.group}\n"""
+      // Don't try to set permissions on directories.
+      // Code deploy sets permissions recursively
+      // and disallows duplicate permission settings.
+      // If permissions are configured separately for
+      // a parent directory and one of its child directories
+      // or files, code deploy will complain of duplicate
+      // permissions for the child.
+      // TODO figure out an efficient way to resolve this automatically
+      if (!content.isDirectory) {
+        appspec ++= s"""  - object: ${content.destination}\n"""
+        appspec ++= s"""    mode: "${content.mode}"\n"""
+        appspec ++= s"""    owner: ${content.owner}\n"""
+        appspec ++= s"""    group: ${content.group}\n"""
+      }
     }
   }
 
