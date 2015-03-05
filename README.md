@@ -2,7 +2,7 @@
 
 Creates zip files for usage with AWS CodeDeploy. Uses defaults that support conventions set forth in the AWS CodeDeploy docs.
 
-[![Build Status](https://travis-ci.org/gilt/sbt-codedeploy.png?branch=master)](https://travis-ci.org/gilt/sbt-codedeploy)
+[TODO: Add Build status once this is a public repo](https://magnum.travis-ci.com/gilt/sbt-codedeploy)
 
 # WARNING
 This plugin intereacts with AWS resources. You will be billed for the AWS resources used by using this plugin. 
