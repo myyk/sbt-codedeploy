@@ -11,8 +11,6 @@ enablePlugins(CodeDeployPlugin)
 
 codedeployBucket := "gilt-direct-deployments"
 
-codedeployContentMappings := Seq.empty
-
 codedeployContentMappings := {
   val symlinks = linuxPackageSymlinks.value
   linuxPackageMappings.value.flatMap { mapping =>
