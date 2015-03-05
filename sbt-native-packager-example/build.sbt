@@ -23,7 +23,7 @@ codedeployContentMappings := {
         owner = fileData.user,
         group = fileData.group,
         symlinkTarget = symlinks.collectFirst {
-          case link if link.destination == to => link.link
+          case link if link.link == to => link.link
         }
       )
     }
