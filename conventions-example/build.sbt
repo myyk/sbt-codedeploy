@@ -9,7 +9,7 @@ packageArchetype.java_server
 
 enablePlugins(CodeDeployPlugin)
 
-name := "svc-payment-manager"
+name in CodeDeploy := "svc-payment-manager"
 
 codedeployBucket := "svc-payment-manager-codedeploy"
 
