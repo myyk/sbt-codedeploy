@@ -60,8 +60,10 @@ case class CodeDeployScriptMapping(
 
 object CodeDeployScriptMapping {
   private val ValidSections = Array(
-    "ApplicationStart",
     "ApplicationStop",
+    "BeforeInstall",
+    "AfterInstall",
+    "ApplicationStart",
     "ValidateService"
   )
 }
@@ -300,12 +302,6 @@ object CodeDeployPlugin extends AutoPlugin {
       script.source -> deployment / ScriptsPrefix / script.location
     })
 
-    IO.write(deployment / "before_install.sh",
-      generateBeforeInstall(content))
-
-    IO.write(deployment / "after_install.sh",
-      generateAfterInstall(content))
-
     IO.write(deployment / "appspec.yml",
       generateAppSpec(content, scripts))
   }
@@ -318,16 +314,7 @@ object CodeDeployPlugin extends AutoPlugin {
     Seq(
       "version: 0.0",
       "os: linux",
-      "hooks:",
-      // TODO don't hardcode BeforeInstall and AfterInstall
-      "  BeforeInstall:",
-      "    - location: ./before_install.sh",
-      "      timeout: 300",
-      "      runas: root",
-      "  AfterInstall:",
-      "    - location: ./after_install.sh",
-      "      timeout: 300",
-      "      runas: root"
+      "hooks:"
     ).foreach { line =>
       appspec ++= s"${line}\n"
     }
@@ -404,38 +391,5 @@ object CodeDeployPlugin extends AutoPlugin {
         appspec ++= s"""    group: ${content.group}\n"""
       }
     }
-  }
-
-  private def generateBeforeInstall(
-    content: Seq[CodeDeployContentMapping]
-  ): String = {
-    var sh = new StringBuilder
-    // need to remove existing files when
-    // installing the new version, as
-    // codedeploy will refuse to overwrite
-    // and fail
-    content.foreach { content =>
-      sh ++= s"rm -rf ${content.destination}\n"
-    }
-    sh.result
-  }
-
-  private def generateAfterInstall(
-    content: Seq[CodeDeployContentMapping]
-  ): String = {
-    val sh = new StringBuilder
-    // if a content mapping was a directory,
-    // then we simply ensure that it exists
-    // as code deploy is not capable of copying
-    // it in the files section
-    content.foreach { content =>
-      if (content.isSymlink) {
-        sh ++= s"ln --no-dereference -sf ${content.symlinkSource.get} ${content.destination}\n"
-      } else if (content.isDirectory) {
-        sh ++= s"mkdir -p ${content.destination}\n"
-      }
-    }
-
-    sh.result
   }
 }
