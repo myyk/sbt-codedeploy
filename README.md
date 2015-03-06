@@ -124,13 +124,11 @@ You may want to create a new alias such as `deploy-test` to clean up the verbose
 
 If you just want to create the zip and push it to your configured S3 bucket use this.
 
-    sbt codedeploy:publish
+    sbt codedeployPush
 
 # Advanced Overriding
 
 ## Native Packager
-
-sbt-codedeploy uses sbt-native-packager and you will need to understand it's usage to modify some of these advanced features.
 
 See [sbt-native-packager-example](sbt-native-packager-example/README.md) for an example of how to use with sbt-native-packager.
 
