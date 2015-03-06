@@ -4,6 +4,14 @@ import sbt._
 import sbt.Keys._
 import sbt.complete.DefaultParsers
 
+import com.amazonaws.AmazonWebServiceClient
+import com.amazonaws.ClientConfiguration
+
+import com.amazonaws.auth.AWSCredentialsProvider
+
+import com.amazonaws.regions.Region
+import com.amazonaws.regions.Regions
+
 import com.amazonaws.services.codedeploy.AmazonCodeDeployClient
 import com.amazonaws.services.codedeploy.model._
 
@@ -52,14 +60,19 @@ case class CodeDeployScriptMapping(
 
 object CodeDeployScriptMapping {
   private val ValidSections = Array(
-    "ApplicationStart",
     "ApplicationStop",
+    "BeforeInstall",
+    "AfterInstall",
+    "ApplicationStart",
     "ValidateService"
   )
 }
 
 object CodeDeployKeys {
   val CodeDeploy = config("codedeploy")
+  val codedeployRegion = settingKey[Regions]("AWS region used by AWS Code Deploy.")
+  val codedeployAWSCredentialsProvider = settingKey[Option[AWSCredentialsProvider]]("AWS credentials provider used by AWS Code Deploy.")
+  val codedeployClientConfiguration = settingKey[Option[ClientConfiguration]]("Client configuration used by AWS Code Deploy.")
   val codedeployBucket = settingKey[String]("S3 bucket used by AWS Code Deploy.")
   val codedeployIgnoreApplicationStopFailures = settingKey[Boolean]("Whether to ignore application stop failures during deploy.")
 
@@ -79,6 +92,9 @@ object CodeDeployPlugin extends AutoPlugin {
   import CodeDeployKeys._
 
   override def projectSettings = Seq(
+    codedeployRegion := Regions.US_EAST_1,
+    codedeployAWSCredentialsProvider := None,
+    codedeployClientConfiguration := None,
     codedeployStagingDirectory := (target in CodeDeploy).value / "stage",
     codedeployIgnoreApplicationStopFailures := false,
     codedeployScriptMappings := {
@@ -110,6 +126,12 @@ object CodeDeployPlugin extends AutoPlugin {
     codedeployCreateDeployment := {
       val groupName = deployArgsParser.parsed
       deploy(
+        createAWSClient(
+          classOf[AmazonCodeDeployClient],
+          (codedeployRegion in CodeDeploy).value,
+          (codedeployAWSCredentialsProvider in CodeDeploy).value.orNull,
+          (codedeployClientConfiguration in CodeDeploy).value.orNull          
+        ),
         (name in CodeDeploy).value,
         (codedeployBucket in CodeDeploy).value,
         (version in CodeDeploy).value,
@@ -133,6 +155,18 @@ object CodeDeployPlugin extends AutoPlugin {
       (codedeployZip in CodeDeploy).value
       val zipFile = (codedeployZipFile in CodeDeploy).value
       pushImpl(
+        createAWSClient(
+          classOf[AmazonCodeDeployClient],
+          (codedeployRegion in CodeDeploy).value,
+          (codedeployAWSCredentialsProvider in CodeDeploy).value.orNull,
+          (codedeployClientConfiguration in CodeDeploy).value.orNull          
+        ),
+        createAWSClient(
+          classOf[AmazonS3Client],
+          (codedeployRegion in CodeDeploy).value,
+          (codedeployAWSCredentialsProvider in CodeDeploy).value.orNull,
+          (codedeployClientConfiguration in CodeDeploy).value .orNull         
+        ),
         zipFile,
         (codedeployBucket in CodeDeploy).value,
         (name in CodeDeploy).value,
@@ -162,6 +196,15 @@ object CodeDeployPlugin extends AutoPlugin {
     assert(0 == cmd.!, s"command failed: ${cmd}")
   }
 
+  private def createAWSClient[T <: AmazonWebServiceClient](
+    clazz: Class[T],
+    regions: Regions,
+    credentialsProvider: AWSCredentialsProvider,
+    clientConfiguration: ClientConfiguration
+  ): T = {
+    Region.getRegion(regions).createClient(clazz, credentialsProvider, clientConfiguration)
+  }
+
   private def s3Location(
     bucket: String,
     name: String,
@@ -184,6 +227,7 @@ object CodeDeployPlugin extends AutoPlugin {
   private val ScriptsPrefix = "scripts"
 
   private def deploy(
+    codeDeployClient: AmazonCodeDeployClient,
     name: String,
     s3Bucket: String,
     version: String,
@@ -196,7 +240,6 @@ object CodeDeployPlugin extends AutoPlugin {
     if (ignoreApplicationStopFailures) {
       log.warn(s"This deployment will ignore ApplicationStop failures.")
     }
-    val codeDeployClient = new AmazonCodeDeployClient
     val result = codeDeployClient.createDeployment(
       new CreateDeploymentRequest()
         .withApplicationName(name)
@@ -210,14 +253,14 @@ object CodeDeployPlugin extends AutoPlugin {
   }
 
   private def pushImpl(
+    codeDeployClient: AmazonCodeDeployClient,
+    s3Client: AmazonS3Client,
     zipFile: File,
     s3Bucket: String,
     name: String,
     version: String,
     log: Logger
   ): S3Location = {
-    val s3Client = new AmazonS3Client
-
     val key = s3Key(name, version)
     // the upload can be slow, so be sure to let
     // the user know it is happening
@@ -225,7 +268,6 @@ object CodeDeployPlugin extends AutoPlugin {
 
     val putObjectResult = s3Client.putObject(
       new PutObjectRequest(s3Bucket, key, zipFile))
-    val codeDeployClient = new AmazonCodeDeployClient
     val s3Loc = s3Location(s3Bucket, name, version)
       .withETag(putObjectResult.getETag)
 
@@ -260,12 +302,6 @@ object CodeDeployPlugin extends AutoPlugin {
       script.source -> deployment / ScriptsPrefix / script.location
     })
 
-    IO.write(deployment / "before_install.sh",
-      generateBeforeInstall(content))
-
-    IO.write(deployment / "after_install.sh",
-      generateAfterInstall(content))
-
     IO.write(deployment / "appspec.yml",
       generateAppSpec(content, scripts))
   }
@@ -278,16 +314,7 @@ object CodeDeployPlugin extends AutoPlugin {
     Seq(
       "version: 0.0",
       "os: linux",
-      "hooks:",
-      // TODO don't hardcode BeforeInstall and AfterInstall
-      "  BeforeInstall:",
-      "    - location: ./before_install.sh",
-      "      timeout: 300",
-      "      runas: root",
-      "  AfterInstall:",
-      "    - location: ./after_install.sh",
-      "      timeout: 300",
-      "      runas: root"
+      "hooks:"
     ).foreach { line =>
       appspec ++= s"${line}\n"
     }
@@ -364,38 +391,5 @@ object CodeDeployPlugin extends AutoPlugin {
         appspec ++= s"""    group: ${content.group}\n"""
       }
     }
-  }
-
-  private def generateBeforeInstall(
-    content: Seq[CodeDeployContentMapping]
-  ): String = {
-    var sh = new StringBuilder
-    // need to remove existing files when
-    // installing the new version, as
-    // codedeploy will refuse to overwrite
-    // and fail
-    content.foreach { content =>
-      sh ++= s"rm -rf ${content.destination}\n"
-    }
-    sh.result
-  }
-
-  private def generateAfterInstall(
-    content: Seq[CodeDeployContentMapping]
-  ): String = {
-    val sh = new StringBuilder
-    // if a content mapping was a directory,
-    // then we simply ensure that it exists
-    // as code deploy is not capable of copying
-    // it in the files section
-    content.foreach { content =>
-      if (content.isSymlink) {
-        sh ++= s"ln --no-dereference -sf ${content.symlinkSource.get} ${content.destination}\n"
-      } else if (content.isDirectory) {
-        sh ++= s"mkdir -p ${content.destination}\n"
-      }
-    }
-
-    sh.result
   }
 }

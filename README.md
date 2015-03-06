@@ -124,13 +124,19 @@ You may want to create a new alias such as `deploy-test` to clean up the verbose
 
 If you just want to create the zip and push it to your configured S3 bucket use this.
 
-    sbt codedeploy:publish
+    sbt codedeployPush
 
 # Advanced Overriding
 
-## Native Packager
+## AWS Region
 
-sbt-codedeploy uses sbt-native-packager and you will need to understand it's usage to modify some of these advanced features.
+By default, the US East 1 region is used as it's the default in the SDK.
+
+To override in `build.sbt` or `Build.scala`:
+
+    codedeployRegion := com.amazonaws.regions.Regions.US_WEST_2
+
+## Native Packager
 
 See [sbt-native-packager-example](sbt-native-packager-example/README.md) for an example of how to use with sbt-native-packager.
 
