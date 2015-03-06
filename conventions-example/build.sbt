@@ -11,6 +11,8 @@ enablePlugins(CodeDeployPlugin)
 
 name in CodeDeploy := "svc-payment-manager"
 
+codedeployRegion := com.amazonaws.regions.Regions.US_WEST_2
+
 codedeployBucket := "svc-payment-manager-codedeploy"
 
 codedeployContentMappings := {

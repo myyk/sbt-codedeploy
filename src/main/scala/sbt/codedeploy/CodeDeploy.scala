@@ -4,6 +4,13 @@ import sbt._
 import sbt.Keys._
 import sbt.complete.DefaultParsers
 
+import com.amazonaws.ClientConfiguration
+
+import com.amazonaws.auth.AWSCredentialsProvider
+
+import com.amazonaws.regions.Region
+import com.amazonaws.regions.Regions
+
 import com.amazonaws.services.codedeploy.AmazonCodeDeployClient
 import com.amazonaws.services.codedeploy.model._
 
@@ -60,6 +67,9 @@ object CodeDeployScriptMapping {
 
 object CodeDeployKeys {
   val CodeDeploy = config("codedeploy")
+  val codedeployRegion = settingKey[Regions]("AWS region used by AWS Code Deploy.")
+  val codedeployAWSCredentialsProvider = settingKey[Option[AWSCredentialsProvider]]("AWS credentials provider used by AWS Code Deploy.")
+  val codedeployClientConfiguration = settingKey[Option[ClientConfiguration]]("Client configuration used by AWS Code Deploy.")
   val codedeployBucket = settingKey[String]("S3 bucket used by AWS Code Deploy.")
   val codedeployIgnoreApplicationStopFailures = settingKey[Boolean]("Whether to ignore application stop failures during deploy.")
 
@@ -79,6 +89,9 @@ object CodeDeployPlugin extends AutoPlugin {
   import CodeDeployKeys._
 
   override def projectSettings = Seq(
+    codedeployRegion := Regions.US_EAST_1,
+    codedeployAWSCredentialsProvider := None,
+    codedeployClientConfiguration := None,
     codedeployStagingDirectory := (target in CodeDeploy).value / "stage",
     codedeployIgnoreApplicationStopFailures := false,
     codedeployScriptMappings := {
@@ -110,6 +123,12 @@ object CodeDeployPlugin extends AutoPlugin {
     codedeployCreateDeployment := {
       val groupName = deployArgsParser.parsed
       deploy(
+        createAWSClient(
+          classOf[AmazonCodeDeployClient],
+          (codedeployRegion in CodeDeploy).value,
+          (codedeployAWSCredentialsProvider in CodeDeploy).value.orNull,
+          (codedeployClientConfiguration in CodeDeploy).value.orNull          
+        ),
         (name in CodeDeploy).value,
         (codedeployBucket in CodeDeploy).value,
         (version in CodeDeploy).value,
@@ -133,6 +152,12 @@ object CodeDeployPlugin extends AutoPlugin {
       (codedeployZip in CodeDeploy).value
       val zipFile = (codedeployZipFile in CodeDeploy).value
       pushImpl(
+        createAWSClient(
+          classOf[AmazonS3Client],
+          (codedeployRegion in CodeDeploy).value,
+          (codedeployAWSCredentialsProvider in CodeDeploy).value.orNull,
+          (codedeployClientConfiguration in CodeDeploy).value .orNull         
+        ),
         zipFile,
         (codedeployBucket in CodeDeploy).value,
         (name in CodeDeploy).value,
@@ -162,6 +187,15 @@ object CodeDeployPlugin extends AutoPlugin {
     assert(0 == cmd.!, s"command failed: ${cmd}")
   }
 
+  private def createAWSClient[T <: com.amazonaws.AmazonWebServiceClient](
+    clazz: Class[T],
+    regions: Regions,
+    credentialsProvider: AWSCredentialsProvider,
+    clientConfiguration: ClientConfiguration
+  ): T = {
+    Region.getRegion(regions).createClient(clazz, credentialsProvider, clientConfiguration)
+  }
+
   private def s3Location(
     bucket: String,
     name: String,
@@ -184,6 +218,7 @@ object CodeDeployPlugin extends AutoPlugin {
   private val ScriptsPrefix = "scripts"
 
   private def deploy(
+    codeDeployClient: AmazonCodeDeployClient,
     name: String,
     s3Bucket: String,
     version: String,
@@ -196,7 +231,6 @@ object CodeDeployPlugin extends AutoPlugin {
     if (ignoreApplicationStopFailures) {
       log.warn(s"This deployment will ignore ApplicationStop failures.")
     }
-    val codeDeployClient = new AmazonCodeDeployClient
     val result = codeDeployClient.createDeployment(
       new CreateDeploymentRequest()
         .withApplicationName(name)
@@ -210,14 +244,13 @@ object CodeDeployPlugin extends AutoPlugin {
   }
 
   private def pushImpl(
+    s3Client: AmazonS3Client,
     zipFile: File,
     s3Bucket: String,
     name: String,
     version: String,
     log: Logger
   ): S3Location = {
-    val s3Client = new AmazonS3Client
-
     val key = s3Key(name, version)
     // the upload can be slow, so be sure to let
     // the user know it is happening
