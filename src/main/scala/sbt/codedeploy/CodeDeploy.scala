@@ -97,8 +97,28 @@ object CodeDeployPlugin extends AutoPlugin {
     codedeployClientConfiguration := None,
     codedeployStagingDirectory := (target in CodeDeploy).value / "stage",
     codedeployIgnoreApplicationStopFailures := false,
+    codedeployContentMappings := {
+      val content = (sourceDirectory in CodeDeploy).value / "content"
+      val relativize = Path.relativeTo(content)
+      (content ***).get.filter(_.isFile).map { file =>
+        relativize(file) match {
+          case None =>
+            sys.error(s"failed to relativize ${file} under ${content}")
+          case Some(path) =>
+            val section = path.split(Path.sep).head
+            new CodeDeployContentMapping(
+              localSource = file,
+              destination = s"${ContentPrefix}${Path.sep}${path}",
+              mode = "0644", // TODO
+              owner = "root",
+              group = "root",
+              symlinkSource = None
+            )
+        }
+      }
+    },
     codedeployScriptMappings := {
-      val scripts = (sourceDirectory in CodeDeploy).value
+      val scripts = (sourceDirectory in CodeDeploy).value / "scripts"
       val relativize = Path.relativeTo(scripts)
       (scripts ***).get.filter(_.isFile).map { file =>
         relativize(file) match {
