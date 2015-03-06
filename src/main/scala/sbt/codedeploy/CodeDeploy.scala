@@ -4,6 +4,7 @@ import sbt._
 import sbt.Keys._
 import sbt.complete.DefaultParsers
 
+import com.amazonaws.AmazonWebServiceClient
 import com.amazonaws.ClientConfiguration
 
 import com.amazonaws.auth.AWSCredentialsProvider
@@ -153,6 +154,12 @@ object CodeDeployPlugin extends AutoPlugin {
       val zipFile = (codedeployZipFile in CodeDeploy).value
       pushImpl(
         createAWSClient(
+          classOf[AmazonCodeDeployClient],
+          (codedeployRegion in CodeDeploy).value,
+          (codedeployAWSCredentialsProvider in CodeDeploy).value.orNull,
+          (codedeployClientConfiguration in CodeDeploy).value.orNull          
+        ),
+        createAWSClient(
           classOf[AmazonS3Client],
           (codedeployRegion in CodeDeploy).value,
           (codedeployAWSCredentialsProvider in CodeDeploy).value.orNull,
@@ -187,7 +194,7 @@ object CodeDeployPlugin extends AutoPlugin {
     assert(0 == cmd.!, s"command failed: ${cmd}")
   }
 
-  private def createAWSClient[T <: com.amazonaws.AmazonWebServiceClient](
+  private def createAWSClient[T <: AmazonWebServiceClient](
     clazz: Class[T],
     regions: Regions,
     credentialsProvider: AWSCredentialsProvider,
@@ -244,6 +251,7 @@ object CodeDeployPlugin extends AutoPlugin {
   }
 
   private def pushImpl(
+    codeDeployClient: AmazonCodeDeployClient,
     s3Client: AmazonS3Client,
     zipFile: File,
     s3Bucket: String,
@@ -258,7 +266,6 @@ object CodeDeployPlugin extends AutoPlugin {
 
     val putObjectResult = s3Client.putObject(
       new PutObjectRequest(s3Bucket, key, zipFile))
-    val codeDeployClient = new AmazonCodeDeployClient
     val s3Loc = s3Location(s3Bucket, name, version)
       .withETag(putObjectResult.getETag)
 
