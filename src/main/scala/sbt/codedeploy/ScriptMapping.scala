@@ -22,8 +22,10 @@ case class ScriptMapping(
 
 object ScriptMapping {
   private[codedeploy] val ValidSections = Array(
+    "AfterInstall",
     "ApplicationStart",
     "ApplicationStop",
+    "BeforeInstall",
     "ValidateService"
   )
 
