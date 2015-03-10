@@ -16,8 +16,6 @@ case class ContentMapping(
 }
 
 object ContentMapping {
-  private[codedeploy] val ContentPrefix = "content"
-
   private[codedeploy] def defaultMappings(
     sourceDirectory: File,
     jars: Seq[File]
@@ -32,7 +30,7 @@ object ContentMapping {
           sys.error(s"failed to relativize ${file} under ${content}")
         case Some(path) => mappings += new ContentMapping(
           file = file,
-          source = (new File(ContentPrefix) / path).getPath,
+          source = path,
           destination = new File(path).getParent match {
             case null => "." // TODO not sure if this works...
             case x => x
@@ -44,7 +42,7 @@ object ContentMapping {
     jars.foreach { file =>
       mappings += new ContentMapping(
         file = file,
-        source = (new File(ContentPrefix) / "lib" / file.getName).getPath,
+        source = (new File("lib") / file.getName).getPath,
         destination = "lib"
       )
     }

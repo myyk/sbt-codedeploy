@@ -85,8 +85,12 @@ object CodeDeployPlugin extends AutoPlugin {
         deployment = deployment,
         name = (name in CodeDeploy).value,
         version = (version in CodeDeploy).value,
-        content = (codedeployContentMappings in CodeDeploy).value,
-        scripts = (codedeployScriptMappings in CodeDeploy).value,
+        content = (codedeployContentMappings in CodeDeploy).value.map {
+          content => content.copy(source = s"content/${content.source}")
+        },
+        scripts = (codedeployScriptMappings in CodeDeploy).value.map {
+          script => script.copy(location = s"scripts/${script.location}")
+        },
         permissions = (codedeployPermissionMappings in CodeDeploy).value
       )
     },

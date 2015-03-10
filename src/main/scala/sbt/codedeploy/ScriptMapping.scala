@@ -8,6 +8,7 @@ import sbt.Path._
 case class ScriptMapping(
   file: File,
   section: String,
+  location: String,
   timeout: Int,
   runas: String
 ) {
@@ -17,8 +18,6 @@ case class ScriptMapping(
     ValidSections.contains(section),
     s"Section must be one of ${ValidSections.mkString("[", ", ", "]")}, not ${section}"
   )
-
-  def location: String = s"${ScriptsPrefix}/${section}/${file.getName}"
 }
 
 object ScriptMapping {
@@ -27,8 +26,6 @@ object ScriptMapping {
     "ApplicationStop",
     "ValidateService"
   )
-
-  private[codedeploy] val ScriptsPrefix = "scripts"
 
   private[codedeploy] def defaultMappings(sourceDirectory: File) = {
     val scripts = sourceDirectory / "scripts"
@@ -42,6 +39,7 @@ object ScriptMapping {
           new ScriptMapping(
             file = file,
             section = section,
+            location = path,
             timeout = 300,
             runas = "root"
           )

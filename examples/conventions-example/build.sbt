@@ -23,7 +23,7 @@ codedeployContentMappings := {
     mapping.mappings.foreach { case (from, to) =>
       buffer += ContentMapping(
         file = from,
-        source = s"content/${to}",
+        source = to,
         destination = to
       )
     }

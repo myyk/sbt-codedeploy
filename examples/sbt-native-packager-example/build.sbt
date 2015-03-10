@@ -16,7 +16,7 @@ name in CodeDeploy := "sbt-codedeploy-sbt-native-packager-example"
 
 codedeployContentMappings ++= {
   makeBashScript.value.toSeq.map { script =>
-    val bin = s"content/bin"
+    val bin = s"bin"
     ContentMapping(
       file = script,
       source = s"${bin}/${name.value}",
