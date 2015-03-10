@@ -17,7 +17,6 @@ object Keys {
   val codedeployIgnoreApplicationStopFailures = settingKey[Boolean]("Whether to ignore application stop failures during deploy.")
 
   val codedeployContentMappings = taskKey[Seq[ContentMapping]]("Mappings for code deploy content (i.e. the files section).")
-  val codedeployGenerateAppSpec = taskKey[String]("Generate the content of appspec.yml.")
   val codedeployPermissionMappings = taskKey[Seq[PermissionMapping]]("Specify code deploy permissions.")
   val codedeployPush = taskKey[Unit]("Push a revision to AWS Code Deploy.")
   val codedeployScriptMappings = taskKey[Seq[ScriptMapping]]("Mappings for code deploy hook scripts.")

@@ -44,11 +44,6 @@ object CodeDeployPlugin extends AutoPlugin {
         (streams in CodeDeploy).value.log
       ).getDeploymentId
     },
-    codedeployGenerateAppSpec := generateAppSpec(
-      content = (codedeployContentMappings in CodeDeploy).value,
-      scripts = (codedeployScriptMappings in CodeDeploy).value,
-      permissions = (codedeployPermissionMappings in CodeDeploy).value
-    ),
     codedeployIgnoreApplicationStopFailures := false,
     codedeployPermissionMappings := PermissionMapping.defaultMappings(
       (sourceDirectory in CodeDeploy).value),
