@@ -11,6 +11,6 @@ case class PermissionMapping(
 
 object PermissionMapping {
   def defaultMappings(sourceDirectory: File) = {
-    Nil // TODO
+    Nil
   }
 }
