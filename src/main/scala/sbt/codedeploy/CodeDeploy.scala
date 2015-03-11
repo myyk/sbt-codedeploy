@@ -18,111 +18,15 @@ import com.amazonaws.services.codedeploy.model._
 import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model._
 
-case class CodeDeployContentMapping(
-  localSource: File,
-  destination: String,
-  mode: String,
-  owner: String,
-  group: String,
-  symlinkSource: Option[String]
-) {
-  def copyable: Boolean = {
-    // instead of copying the directory we have to
-    // create it as part of the deploy.
-    // otherwise, codedeploy will just try to copy the source
-    // into what it assumes is an existing destination directory
-    if (isDirectory) return false
-    // symlinks simply need to be created
-    // after the install process
-    else if (isSymlink) return false
-    else true
-  }
-
-  def isSymlink = symlinkSource.isDefined
-
-  def isDirectory = localSource.isDirectory
-}
-
-case class CodeDeployScriptMapping(
-  source: File,
-  section: String,
-  location: String,
-  timeout: Int,
-  runas: String
-) {
-  import CodeDeployScriptMapping._
-
-  require(
-    ValidSections.contains(section),
-    s"Section must be one of ${ValidSections.mkString("[", ", ", "]")}, not ${section}"
-  )
-}
-
-object CodeDeployScriptMapping {
-  private val ValidSections = Array(
-    "ApplicationStop",
-    "BeforeInstall",
-    "AfterInstall",
-    "ApplicationStart",
-    "ValidateService"
-  )
-}
-
-object CodeDeployKeys {
-  val CodeDeploy = config("codedeploy")
-  val codedeployRegion = settingKey[Regions]("AWS region used by AWS Code Deploy.")
-  val codedeployAWSCredentialsProvider = settingKey[Option[AWSCredentialsProvider]]("AWS credentials provider used by AWS Code Deploy.")
-  val codedeployClientConfiguration = settingKey[Option[ClientConfiguration]]("Client configuration used by AWS Code Deploy.")
-  val codedeployBucket = settingKey[String]("S3 bucket used by AWS Code Deploy.")
-  val codedeployIgnoreApplicationStopFailures = settingKey[Boolean]("Whether to ignore application stop failures during deploy.")
-
-  val codedeployContentMappings = taskKey[Seq[CodeDeployContentMapping]]("Mappings for code deploy content (i.e. the files section).")
-  val codedeployGenerateAppSpec = taskKey[String]("Generate the content of appspec.yml.")
-  val codedeployPush = taskKey[Unit]("Push a revision to AWS Code Deploy.")
-  val codedeployScriptMappings = taskKey[Seq[CodeDeployScriptMapping]]("Mappings for code deploy hook scripts.")
-  val codedeployStage = taskKey[Unit]("Stage a Code Deploy revision in the staging directory.")
-  val codedeployStagingDirectory = taskKey[File]("Directory used to stage a Code Deploy revision.")
-  val codedeployZip = taskKey[Unit]("Create a zip from a staged deployment.")
-  val codedeployZipFile = taskKey[File]("Location of the deployment zip.")
-
-  val codedeployCreateDeployment = inputKey[Unit]("Deploy to the given deployment group.")
-}
-
 object CodeDeployPlugin extends AutoPlugin {
-  import CodeDeployKeys._
+  import sbt.codedeploy.Keys._
 
   override def projectSettings = Seq(
-    codedeployRegion := Regions.US_EAST_1,
     codedeployAWSCredentialsProvider := None,
     codedeployClientConfiguration := None,
-    codedeployStagingDirectory := (target in CodeDeploy).value / "stage",
-    codedeployIgnoreApplicationStopFailures := false,
-    codedeployScriptMappings := {
-      val scripts = (sourceDirectory in CodeDeploy).value
-      val relativize = Path.relativeTo(scripts)
-      (scripts ***).get.filter(_.isFile).map { file =>
-        relativize(file) match {
-          case None =>
-            sys.error(s"failed to relativize ${file} under ${scripts}")
-          case Some(path) =>
-            val section = path.split(Path.sep).head
-            new CodeDeployScriptMapping(
-              source = file,
-              section = section,
-              location = path,
-              timeout = 300,
-              runas = "root"
-            )
-        }
-      }
-    },
-    sourceDirectory in CodeDeploy := {
-      (baseDirectory in CodeDeploy).value / "src" / "codedeploy"
-    },
-    codedeployGenerateAppSpec := generateAppSpec(
-      content = (codedeployContentMappings in CodeDeploy).value,
-      scripts = (codedeployScriptMappings in CodeDeploy).value
-    ),
+    codedeployContentMappings := ContentMapping.defaultMappings(
+      (sourceDirectory in CodeDeploy).value,
+      (packageBin in Compile).value +: (dependencyClasspath in Compile).value.files),
     codedeployCreateDeployment := {
       val groupName = deployArgsParser.parsed
       deploy(
@@ -130,7 +34,7 @@ object CodeDeployPlugin extends AutoPlugin {
           classOf[AmazonCodeDeployClient],
           (codedeployRegion in CodeDeploy).value,
           (codedeployAWSCredentialsProvider in CodeDeploy).value.orNull,
-          (codedeployClientConfiguration in CodeDeploy).value.orNull          
+          (codedeployClientConfiguration in CodeDeploy).value.orNull
         ),
         (name in CodeDeploy).value,
         (codedeployBucket in CodeDeploy).value,
@@ -140,17 +44,9 @@ object CodeDeployPlugin extends AutoPlugin {
         (streams in CodeDeploy).value.log
       ).getDeploymentId
     },
-    codedeployStage := {
-      val deployment = (codedeployStagingDirectory in CodeDeploy).value
-      streams.value.log.info(s"Staging deployment in ${deployment}...")
-      stageRevision(
-        deployment = deployment,
-        name = (name in CodeDeploy).value,
-        version = (version in CodeDeploy).value,
-        content = (codedeployContentMappings in CodeDeploy).value,
-        scripts = (codedeployScriptMappings in CodeDeploy).value
-      )
-    },
+    codedeployIgnoreApplicationStopFailures := false,
+    codedeployPermissionMappings := PermissionMapping.defaultMappings(
+      (sourceDirectory in CodeDeploy).value),
     codedeployPush := {
       (codedeployZip in CodeDeploy).value
       val zipFile = (codedeployZipFile in CodeDeploy).value
@@ -174,6 +70,26 @@ object CodeDeployPlugin extends AutoPlugin {
         (streams in CodeDeploy).value.log
       )
     },
+    codedeployRegion := Regions.US_EAST_1,
+    codedeployScriptMappings := ScriptMapping.defaultMappings(
+      (sourceDirectory in CodeDeploy).value),
+    codedeployStage := {
+      val deployment = (codedeployStagingDirectory in CodeDeploy).value
+      streams.value.log.info(s"Staging deployment in ${deployment}...")
+      stageRevision(
+        deployment = deployment,
+        name = (name in CodeDeploy).value,
+        version = (version in CodeDeploy).value,
+        content = (codedeployContentMappings in CodeDeploy).value.map {
+          content => content.copy(source = s"content/${content.source}")
+        },
+        scripts = (codedeployScriptMappings in CodeDeploy).value.map {
+          script => script.copy(location = s"scripts/${script.location}")
+        },
+        permissions = (codedeployPermissionMappings in CodeDeploy).value
+      )
+    },
+    codedeployStagingDirectory := (target in CodeDeploy).value / "stage",
     codedeployZip := {
       (codedeployStage in CodeDeploy).value
       val deployment = (codedeployStagingDirectory in CodeDeploy).value
@@ -183,6 +99,9 @@ object CodeDeployPlugin extends AutoPlugin {
     },
     codedeployZipFile := {
       (target in CodeDeploy).value / s"${name.value}-${version.value}.zip"
+    },
+    sourceDirectory in CodeDeploy := {
+      (baseDirectory in CodeDeploy).value / "src" / "codedeploy"
     },
     target in CodeDeploy := target.value / "codedeploy"
   )
@@ -222,9 +141,6 @@ object CodeDeployPlugin extends AutoPlugin {
   ): String = {
     s"${name}/codedeploy-revisions/${version}.zip"
   }
-
-  private val ContentPrefix = "content"
-  private val ScriptsPrefix = "scripts"
 
   private def deploy(
     codeDeployClient: AmazonCodeDeployClient,
@@ -287,53 +203,47 @@ object CodeDeployPlugin extends AutoPlugin {
     deployment: File,
     name: String,
     version: String,
-    content: Seq[CodeDeployContentMapping],
-    scripts: Seq[CodeDeployScriptMapping]
+    content: Seq[ContentMapping],
+    scripts: Seq[ScriptMapping],
+    permissions: Seq[PermissionMapping]
   ): Unit = {
 
     IO.delete(deployment)
     deployment.mkdirs
 
     IO.copy(content.map { content =>
-      content.localSource -> deployment / ContentPrefix / content.destination
+      content.file -> deployment / content.source
     })
 
     IO.copy(scripts.map { script =>
-      script.source -> deployment / ScriptsPrefix / script.location
+      script.file -> deployment / script.location
     })
 
     IO.write(deployment / "appspec.yml",
-      generateAppSpec(content, scripts))
+      generateAppSpec(content, scripts, permissions))
   }
 
   private def generateAppSpec(
-    content: Seq[CodeDeployContentMapping],
-    scripts: Seq[CodeDeployScriptMapping]
+    content: Seq[ContentMapping],
+    scripts: Seq[ScriptMapping],
+    permissions: Seq[PermissionMapping]
   ): String = {
     val appspec = new StringBuilder
-    Seq(
-      "version: 0.0",
-      "os: linux",
-      "hooks:"
-    ).foreach { line =>
-      appspec ++= s"${line}\n"
-    }
 
+    appspec ++= "version: 0.0\n"
+    appspec ++= "os: linux\n"
     generateAppSpecHooks(appspec, scripts)
-
-    appspec ++= "files:\n"
     generateAppSpecFiles(appspec, content)
-
-    appspec ++= "permissions:\n"
-    generateAppSpecPermissions(appspec, content)
+    generateAppSpecPermissions(appspec, permissions)
 
     appspec.result
   }
 
   private def generateAppSpecHooks(
     appspec: StringBuilder,
-    scripts: Seq[CodeDeployScriptMapping]
+    scripts: Seq[ScriptMapping]
   ): Unit = {
+    appspec ++= "hooks:\n"
     var section: String = null
     // sort includes location so that scripts for
     // each hook will run in lexicograpic order
@@ -342,7 +252,7 @@ object CodeDeployPlugin extends AutoPlugin {
         section = script.section
         appspec ++= s"  ${section}:\n"
       }
-      appspec ++= s"""    - location: ${ScriptsPrefix}/${script.location}\n"""
+      appspec ++= s"""    - location: ${script.location}\n"""
       appspec ++= s"""      timeout: ${script.timeout}\n"""
       appspec ++= s"""      runas: ${script.runas}\n"""
     }
@@ -350,46 +260,25 @@ object CodeDeployPlugin extends AutoPlugin {
 
   private def generateAppSpecFiles(
     appspec: StringBuilder,
-    content: Seq[CodeDeployContentMapping]
+    content: Seq[ContentMapping]
   ): Unit = {
+    appspec ++= "files:\n"
     content.foreach { content =>
-      if (content.copyable) {
-        // the destination specified for code deploy
-        // should be the parent directory of the
-        // desired full path...
-        val path = content.destination
-        val destination = {
-          val tmp = file(path)
-          val parent = tmp.getParent
-          // should not happen because we are excluding directories above...
-          assert(parent != null, s"unexpected mapping to root ${content}")
-          parent
-        }
-        appspec ++= s"""  - source: ${ContentPrefix}${path}\n"""
-        appspec ++= s"""    destination: ${destination}\n"""
-      }
+      appspec ++= s"""  - source: ${content.source}\n"""
+      appspec ++= s"""    destination: ${content.destination}\n"""
     }
   }
 
   private def generateAppSpecPermissions(
     appspec: StringBuilder,
-    content: Seq[CodeDeployContentMapping]
+    permissions: Seq[PermissionMapping]
   ): Unit = {
-    content.foreach { content =>
-      // Don't try to set permissions on directories.
-      // Code deploy sets permissions recursively
-      // and disallows duplicate permission settings.
-      // If permissions are configured separately for
-      // a parent directory and one of its child directories
-      // or files, code deploy will complain of duplicate
-      // permissions for the child.
-      // TODO figure out an efficient way to resolve this automatically
-      if (!content.isDirectory) {
-        appspec ++= s"""  - object: ${content.destination}\n"""
-        appspec ++= s"""    mode: "${content.mode}"\n"""
-        appspec ++= s"""    owner: ${content.owner}\n"""
-        appspec ++= s"""    group: ${content.group}\n"""
-      }
+    appspec ++= "permissions:\n"
+    permissions.foreach { permission =>
+      appspec ++= s"""  - object: ${permission.objectPath}\n"""
+      appspec ++= s"""    mode: "${permission.mode}"\n"""
+      appspec ++= s"""    owner: ${permission.owner}\n"""
+      appspec ++= s"""    group: ${permission.group}\n"""
     }
   }
 }
