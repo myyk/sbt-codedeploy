@@ -14,23 +14,21 @@ codedeployBucket := "gilt-direct-deployments"
 
 name in CodeDeploy := "sbt-codedeploy-sbt-native-packager-example"
 
-codedeployContentMappings ++= {
-  makeBashScript.value.toSeq.map { script =>
-    val bin = s"bin"
-    ContentMapping(
-      file = script,
-      source = s"${bin}/${name.value}",
-      destination = bin
-    )
-  }
-}
-
 codedeployContentMappings := {
-  codedeployContentMappings.value.map { mapping =>
-    mapping.copy(
-      destination = s"/usr/share/${name.value}/${mapping.destination}"
-    )
+  val buffer = collection.mutable.ArrayBuffer.empty[ContentMapping]
+  val symlinks = linuxPackageSymlinks.value.map(_.link).toSet
+  linuxPackageMappings.value.foreach { mapping =>
+    mapping.mappings.foreach { case (from, to) =>
+      if (!from.isDirectory && !symlinks(to)) {
+        buffer += ContentMapping(
+          file = from,
+          source = to,
+          destination = new File(to).getParent
+        )
+      }
+    }
   }
+  buffer
 }
 
 codedeployPermissionMappings := {
