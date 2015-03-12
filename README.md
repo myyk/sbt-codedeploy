@@ -142,6 +142,14 @@ If the default script mappings above are not enough you can override them. For e
 
 # FAQ
 
+## I'm getting an error like this:
+
+    [error] (*:codedeployPush) com.amazonaws.services.codedeploy.model.ApplicationDoesNotExistException: Applications not found for xxxxxxxxxxxx (Service: AmazonCodeDeploy; Status Code: 400; Error Code: ApplicationDoesNotExistException; Request ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+
+Check that the name matches your CodeDeploy application name `sbt inspect CodeDeploy:name`.
+
+If that's fine then, maybe the AWS region is not correct. Follow the steps above to override the default.
+
 ## My deployment keeps failing.
 
 Make sure you've got an zip of the application revision in your S3 bucket.
