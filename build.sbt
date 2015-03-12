@@ -48,3 +48,6 @@ pomExtra := (
     </developer>
   </developers>
 )
+
+scriptedSettings
+scriptedLaunchOpts += s"-Dproject.version=${version.value}"
