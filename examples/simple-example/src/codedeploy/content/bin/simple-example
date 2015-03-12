@@ -1,3 +1,0 @@
-#!/bin/bash -ex
-
-java -cp lib ExampleMain

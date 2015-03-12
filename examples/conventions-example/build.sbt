@@ -9,8 +9,8 @@ packageArchetype.java_server
 
 enablePlugins(CodeDeployPlugin)
 
-name in CodeDeploy := "svc-payment-manager"
+name in CodeDeploy := "sbt-codedeploy-conventions-example"
 
 codedeployRegion := com.amazonaws.regions.Regions.US_WEST_2
 
-codedeployBucket := "svc-payment-manager-codedeploy"
+codedeployBucket := "backoffice-codedeploy-oregon"
