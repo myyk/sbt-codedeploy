@@ -32,7 +32,7 @@ object ContentMapping {
           file = file,
           source = path,
           destination = new File(path).getParent match {
-            case null => "." // TODO not sure if this works...
+            case null => "."
             case x => x
           }
         )
