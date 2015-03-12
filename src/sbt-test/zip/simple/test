@@ -1,3 +1,12 @@
-# Check that zip is created.
+# Check that zip is created and everything exists in the right locations.
 > codedeployZip
 $ exists target/codedeploy/simple-0.1-SNAPSHOT.zip
+$ exec zipinfo target/codedeploy/simple-0.1-SNAPSHOT.zip appspec.yml
+$ exec zipinfo target/codedeploy/simple-0.1-SNAPSHOT.zip content/
+$ exec zipinfo target/codedeploy/simple-0.1-SNAPSHOT.zip content/application.conf
+$ exec zipinfo target/codedeploy/simple-0.1-SNAPSHOT.zip content/lib/scala-library.jar
+$ exec zipinfo target/codedeploy/simple-0.1-SNAPSHOT.zip content/lib/simple_2.10-0.1-SNAPSHOT.jar
+$ exec zipinfo target/codedeploy/simple-0.1-SNAPSHOT.zip scripts/
+$ exec zipinfo target/codedeploy/simple-0.1-SNAPSHOT.zip scripts/ApplicationStart/01start.sh
+$ exec zipinfo target/codedeploy/simple-0.1-SNAPSHOT.zip scripts/ApplicationStop/01stop.sh
+$ exec zipinfo target/codedeploy/simple-0.1-SNAPSHOT.zip scripts/BeforeInstall/01moveLib.sh
