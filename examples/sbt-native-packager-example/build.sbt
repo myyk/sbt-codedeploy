@@ -10,9 +10,11 @@ packageArchetype.java_server
 
 enablePlugins(CodeDeployPlugin)
 
-codedeployBucket := "gilt-direct-deployments"
+codedeployBucket := "backoffice-codedeploy-oregon"
 
 name in CodeDeploy := "sbt-codedeploy-sbt-native-packager-example"
+
+codedeployRegion := com.amazonaws.regions.Regions.US_WEST_2
 
 codedeployContentMappings := {
   val buffer = collection.mutable.ArrayBuffer.empty[ContentMapping]

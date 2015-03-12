@@ -5,9 +5,11 @@ packageArchetype.java_server
 
 enablePlugins(CodeDeployPlugin)
 
-codedeployBucket := "gilt-direct-deployments"
+codedeployBucket := "backoffice-codedeploy-oregon"
 
 name in CodeDeploy := "sbt-codedeploy-simple-example"
+
+codedeployRegion := com.amazonaws.regions.Regions.US_WEST_2
 
 codedeployPermissionMappings := Seq(
   sbt.codedeploy.PermissionMapping(

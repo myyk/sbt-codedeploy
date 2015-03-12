@@ -1,5 +1,6 @@
 Usage:
 
     sbt
+    > project sbtNativePackagerExample
     > codedeployPush
-    > codedeployCreateDeployment demo
+    > codedeployCreateDeployment Test
