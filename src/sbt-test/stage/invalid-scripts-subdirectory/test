@@ -1,0 +1,4 @@
+# Check that the build fails for when there are scripts that cannot be built.
+-> codedeployStage
+-$ exists target/codedeploy/stage/appspec.yml
+-$ exists target/codedeploy/stage/scripts/
