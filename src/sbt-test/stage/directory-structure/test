@@ -1,0 +1,8 @@
+# Check that directories are created and populated
+> codedeployStage
+$ exists target/codedeploy/stage/content
+$ exists target/codedeploy/stage/content/application.conf
+$ exists target/codedeploy/stage/scripts
+$ exists target/codedeploy/stage/scripts/ApplicationStart/01start.sh
+$ exists target/codedeploy/stage/scripts/ApplicationStop/01stop.sh
+$ exists target/codedeploy/stage/scripts/BeforeInstall/01moveLib.sh

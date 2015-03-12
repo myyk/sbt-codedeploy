@@ -1,0 +1,3 @@
+# Check that appspec is created
+> codedeployStage
+$ exists target/codedeploy/stage/appspec.yml
