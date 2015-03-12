@@ -1,0 +1,3 @@
+# Check that zip is created.
+> codedeployZip
+$ exists target/codedeploy/simple-0.1-SNAPSHOT.zip
