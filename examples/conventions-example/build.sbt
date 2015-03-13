@@ -1,4 +1,3 @@
-import sbt.codedeploy.ContentMapping
 import sbt.codedeploy.Keys._
 import sbt.codedeploy.CodeDeployPlugin
 
