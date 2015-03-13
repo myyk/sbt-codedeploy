@@ -52,9 +52,9 @@ hooks:
       timeout: 300
       runas: root
 files:
-  - source: content/lib/generate-appspec_2.10-0.1-SNAPSHOT.jar
+  - source: content/lib/org.scala-lang.scala-library-2.10.4.jar
     destination: lib
-  - source: content/lib/scala-library.jar
+  - source: content/lib/com.example.generate-appspec-0.1-SNAPSHOT.jar
     destination: lib
 permissions:
   - object: lib
