@@ -9,7 +9,7 @@ codedeployBucket := "nowhere"
 codedeployPermissionMappings := Seq(
   PermissionMapping(
     objectPath = "lib",
-    mode = "0600",
+    mode = "0400",
     owner = "root",
     group = "root"
   )

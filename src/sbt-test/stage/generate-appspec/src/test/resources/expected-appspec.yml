@@ -58,6 +58,8 @@ files:
     destination: lib
 permissions:
   - object: lib
-    mode: "0600"
+    mode: "0400"
     owner: root
     group: root
+    type:
+      - file

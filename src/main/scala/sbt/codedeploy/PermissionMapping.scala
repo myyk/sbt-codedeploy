@@ -6,7 +6,8 @@ case class PermissionMapping(
   objectPath: String,
   mode: String,
   owner: String,
-  group: String
+  group: String,
+  objectType: String = "file"
 )
 
 object PermissionMapping {
