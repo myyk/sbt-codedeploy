@@ -13,6 +13,7 @@ codedeployPermissionMappings := Seq(
     objectPath = "lib",
     mode = "0400",
     owner = "root",
-    group = "root"
+    group = "root",
+    objectType = Some("file")
   )
 )

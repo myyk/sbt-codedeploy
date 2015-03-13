@@ -282,8 +282,10 @@ object CodeDeployPlugin extends AutoPlugin {
       appspec ++= s"""    mode: "${permission.mode}"\n"""
       appspec ++= s"""    owner: ${permission.owner}\n"""
       appspec ++= s"""    group: ${permission.group}\n"""
-      appspec ++= s"""    type:\n"""
-      appspec ++= s"""      - ${permission.objectType}\n"""
+      permission.objectType.foreach { objectType =>
+        appspec ++= s"""    type:\n"""
+        appspec ++= s"""      - $objectType\n"""
+      }
     }
   }
 }
