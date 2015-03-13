@@ -1,0 +1,1 @@
+addSbtPlugin("com.gilt" % "sbt-codedeploy" % sys.props("project.version"))

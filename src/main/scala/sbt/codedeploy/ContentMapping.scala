@@ -4,6 +4,10 @@ import scala.collection.mutable.ArrayBuffer
 
 import java.io.File
 
+import sbt.Attributed
+import sbt.AttributeKey
+import sbt.Artifact
+import sbt.ModuleID
 import sbt.Path
 import sbt.Path._
 
@@ -18,7 +22,10 @@ case class ContentMapping(
 object ContentMapping {
   private[codedeploy] def defaultMappings(
     sourceDirectory: File,
-    jars: Seq[File]
+    dependencies: Seq[Attributed[File]],
+    packagedArtifact: (Artifact, File),
+    organization: String,
+    version: String
   ) = {
     val content = sourceDirectory / "content"
     val relativize = Path.relativeTo(content)
@@ -39,10 +46,26 @@ object ContentMapping {
       }
     }
 
-    jars.foreach { file =>
+    dependencies.foreach { entry =>
+      println(entry.metadata)
+      val file = entry.data
+      val artifact = entry.get[Artifact](sbt.Keys.artifact.key).getOrElse {
+        sys.error(s"unable to lookup artifact for ${file}")
+      }
+      val module = entry.get[ModuleID](sbt.Keys.moduleID.key).getOrElse {
+        sys.error(s"unable to lookup module for ${file}")
+      }
       mappings += new ContentMapping(
         file = file,
-        source = (new File("lib") / file.getName).getPath,
+        source = (new File("lib") / s"${module.organization}.${module.name}-${module.revision}.${artifact.`type`}").getPath,
+        destination = "lib"
+      )
+    }
+
+    packagedArtifact match { case (artifact, file) =>
+      mappings += new ContentMapping(
+        file = file,
+        source = (new File("lib") / s"${organization}.${artifact.name}-${version}.${artifact.`type`}").getPath,
         destination = "lib"
       )
     }

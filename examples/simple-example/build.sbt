@@ -1,8 +1,6 @@
 import sbt.codedeploy.Keys._
 import sbt.codedeploy.CodeDeployPlugin
 
-packageArchetype.java_server
-
 enablePlugins(CodeDeployPlugin)
 
 codedeployBucket := "backoffice-codedeploy-oregon"
