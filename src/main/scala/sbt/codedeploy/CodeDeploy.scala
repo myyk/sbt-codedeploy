@@ -27,6 +27,7 @@ object CodeDeployPlugin extends AutoPlugin {
     codedeployAWSCredentialsProvider := None,
     codedeployClientConfiguration := None,
     codedeployContentMappings := ContentMapping.defaultMappings(
+      (name in CodeDeploy).value,
       (sourceDirectory in CodeDeploy).value,
       (packageBin in Compile).value +: (dependencyClasspath in Compile).value.files),
     codedeployCreateDeployment := {

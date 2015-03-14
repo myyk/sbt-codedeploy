@@ -17,6 +17,7 @@ case class ContentMapping(
 
 object ContentMapping {
   private[codedeploy] def defaultMappings(
+    name: String,
     sourceDirectory: File,
     jars: Seq[File]
   ) = {
@@ -32,7 +33,7 @@ object ContentMapping {
           file = file,
           source = path,
           destination = new File(path).getParent match {
-            case null => "."
+            case null => name
             case x => x
           }
         )
