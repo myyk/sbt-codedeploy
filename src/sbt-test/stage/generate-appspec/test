@@ -1,3 +1,4 @@
 # Check that appspec is created
 > codedeployStage
 $ exists target/codedeploy/stage/appspec.yml
+$ exec diff target/codedeploy/stage/appspec.yml src/test/resources/expected-appspec.yml

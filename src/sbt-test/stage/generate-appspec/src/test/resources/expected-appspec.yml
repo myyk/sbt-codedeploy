@@ -1,0 +1,65 @@
+version: 0.0
+os: linux
+hooks:
+  AfterInstall:
+    - location: scripts/AfterInstall/01.sh
+      timeout: 300
+      runas: root
+    - location: scripts/AfterInstall/02.sh
+      timeout: 300
+      runas: root
+    - location: scripts/AfterInstall/03.sh
+      timeout: 300
+      runas: root
+  ApplicationStart:
+    - location: scripts/ApplicationStart/01.sh
+      timeout: 300
+      runas: root
+    - location: scripts/ApplicationStart/02.sh
+      timeout: 300
+      runas: root
+    - location: scripts/ApplicationStart/03.sh
+      timeout: 300
+      runas: root
+  ApplicationStop:
+    - location: scripts/ApplicationStop/01.sh
+      timeout: 300
+      runas: root
+    - location: scripts/ApplicationStop/02.sh
+      timeout: 300
+      runas: root
+    - location: scripts/ApplicationStop/03.sh
+      timeout: 300
+      runas: root
+  BeforeInstall:
+    - location: scripts/BeforeInstall/01.sh
+      timeout: 300
+      runas: root
+    - location: scripts/BeforeInstall/02.sh
+      timeout: 300
+      runas: root
+    - location: scripts/BeforeInstall/03.sh
+      timeout: 300
+      runas: root
+  ValidateService:
+    - location: scripts/ValidateService/01.sh
+      timeout: 300
+      runas: root
+    - location: scripts/ValidateService/02.sh
+      timeout: 300
+      runas: root
+    - location: scripts/ValidateService/03.sh
+      timeout: 300
+      runas: root
+files:
+  - source: content/lib/org.scala-lang.scala-library-2.10.4.jar
+    destination: lib
+  - source: content/lib/com.example.generate-appspec-0.1-SNAPSHOT.jar
+    destination: lib
+permissions:
+  - object: lib
+    mode: "0400"
+    owner: root
+    group: root
+    type:
+      - file

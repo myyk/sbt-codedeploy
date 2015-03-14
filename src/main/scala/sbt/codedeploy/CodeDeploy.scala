@@ -29,7 +29,10 @@ object CodeDeployPlugin extends AutoPlugin {
     codedeployContentMappings := ContentMapping.defaultMappings(
       (name in CodeDeploy).value,
       (sourceDirectory in CodeDeploy).value,
-      (packageBin in Compile).value +: (dependencyClasspath in Compile).value.files),
+      Classpaths.managedJars(Compile, Set("jar"), update.value),
+      packagedArtifact.in(Compile, packageBin).value,
+      organization.value,
+      version.value),
     codedeployCreateDeployment := {
       val groupName = deployArgsParser.parsed
       deploy(
@@ -290,6 +293,10 @@ object CodeDeployPlugin extends AutoPlugin {
       appspec ++= s"""    mode: "${permission.mode}"\n"""
       appspec ++= s"""    owner: ${permission.owner}\n"""
       appspec ++= s"""    group: ${permission.group}\n"""
+      permission.objectType.foreach { objectType =>
+        appspec ++= s"""    type:\n"""
+        appspec ++= s"""      - $objectType\n"""
+      }
     }
   }
 }
