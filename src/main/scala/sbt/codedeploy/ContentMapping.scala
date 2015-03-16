@@ -41,7 +41,7 @@ object ContentMapping {
           source = path,
           destination = new File(path).getParent match {
             case null => name
-            case x => x
+            case x => new File(name, x).getPath
           }
         )
       }
