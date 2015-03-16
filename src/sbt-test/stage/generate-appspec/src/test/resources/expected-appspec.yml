@@ -2,53 +2,53 @@ version: 0.0
 os: linux
 hooks:
   AfterInstall:
-    - location: scripts/generate-appspec/AfterInstall/01.sh
+    - location: scripts/AfterInstall/01.sh
       timeout: 300
       runas: root
-    - location: scripts/generate-appspec/AfterInstall/02.sh
+    - location: scripts/AfterInstall/02.sh
       timeout: 300
       runas: root
-    - location: scripts/generate-appspec/AfterInstall/03.sh
+    - location: scripts/AfterInstall/03.sh
       timeout: 300
       runas: root
   ApplicationStart:
-    - location: scripts/generate-appspec/ApplicationStart/01.sh
+    - location: scripts/ApplicationStart/01.sh
       timeout: 300
       runas: root
-    - location: scripts/generate-appspec/ApplicationStart/02.sh
+    - location: scripts/ApplicationStart/02.sh
       timeout: 300
       runas: root
-    - location: scripts/generate-appspec/ApplicationStart/03.sh
+    - location: scripts/ApplicationStart/03.sh
       timeout: 300
       runas: root
   ApplicationStop:
-    - location: scripts/generate-appspec/ApplicationStop/01.sh
+    - location: scripts/ApplicationStop/01.sh
       timeout: 300
       runas: root
-    - location: scripts/generate-appspec/ApplicationStop/02.sh
+    - location: scripts/ApplicationStop/02.sh
       timeout: 300
       runas: root
-    - location: scripts/generate-appspec/ApplicationStop/03.sh
+    - location: scripts/ApplicationStop/03.sh
       timeout: 300
       runas: root
   BeforeInstall:
-    - location: scripts/generate-appspec/BeforeInstall/01.sh
+    - location: scripts/BeforeInstall/01.sh
       timeout: 300
       runas: root
-    - location: scripts/generate-appspec/BeforeInstall/02.sh
+    - location: scripts/BeforeInstall/02.sh
       timeout: 300
       runas: root
-    - location: scripts/generate-appspec/BeforeInstall/03.sh
+    - location: scripts/BeforeInstall/03.sh
       timeout: 300
       runas: root
   ValidateService:
-    - location: scripts/generate-appspec/ValidateService/01.sh
+    - location: scripts/ValidateService/01.sh
       timeout: 300
       runas: root
-    - location: scripts/generate-appspec/ValidateService/02.sh
+    - location: scripts/ValidateService/02.sh
       timeout: 300
       runas: root
-    - location: scripts/generate-appspec/ValidateService/03.sh
+    - location: scripts/ValidateService/03.sh
       timeout: 300
       runas: root
 files:

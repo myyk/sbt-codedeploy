@@ -4,7 +4,7 @@ $ exists target/codedeploy/stage/content/directory-structure/
 $ exists target/codedeploy/stage/content/directory-structure/application.conf
 $ exists target/codedeploy/stage/content/directory-structure/lib/org.scala-lang.scala-library-2.10.4.jar
 $ exists target/codedeploy/stage/content/directory-structure/lib/default.directory-structure-0.1-SNAPSHOT.jar
-$ exists target/codedeploy/stage/scripts/directory-structure/
-$ exists target/codedeploy/stage/scripts/directory-structure/ApplicationStart/01start.sh
-$ exists target/codedeploy/stage/scripts/directory-structure/ApplicationStop/01stop.sh
-$ exists target/codedeploy/stage/scripts/directory-structure/BeforeInstall/01moveLib.sh
+$ exists target/codedeploy/stage/scripts/
+$ exists target/codedeploy/stage/scripts/ApplicationStart/01start.sh
+$ exists target/codedeploy/stage/scripts/ApplicationStop/01stop.sh
+$ exists target/codedeploy/stage/scripts/BeforeInstall/01moveLib.sh

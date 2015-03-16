@@ -29,10 +29,7 @@ object ScriptMapping {
     "ValidateService"
   )
 
-  private[codedeploy] def defaultMappings(
-    name: String,
-    sourceDirectory: File
-  ) = {
+  private[codedeploy] def defaultMappings(sourceDirectory: File) = {
     val scripts = sourceDirectory / "scripts"
     val relativize = Path.relativeTo(scripts)
     (scripts ***).get.filter(_.isFile).map { file =>
@@ -41,11 +38,10 @@ object ScriptMapping {
           sys.error(s"failed to relativize ${file} under ${scripts}")
         case Some(path) =>
           val section = path.split(Path.sep).head
-          val location = new File(name, path)
           new ScriptMapping(
             file = file,
             section = section,
-            location = location.getPath,
+            location = path,
             timeout = 300,
             runas = "root"
           )
