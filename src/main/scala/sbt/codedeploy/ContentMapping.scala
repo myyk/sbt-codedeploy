@@ -47,7 +47,6 @@ object ContentMapping {
     }
 
     dependencies.foreach { entry =>
-      println(entry.metadata)
       val file = entry.data
       val artifact = entry.get[Artifact](sbt.Keys.artifact.key).getOrElse {
         sys.error(s"unable to lookup artifact for ${file}")
