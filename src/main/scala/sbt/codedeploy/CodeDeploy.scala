@@ -78,6 +78,7 @@ object CodeDeployPlugin extends AutoPlugin {
     },
     codedeployRegion := Regions.US_EAST_1,
     codedeployScriptMappings := ScriptMapping.defaultMappings(
+      (name in CodeDeploy).value,
       (sourceDirectory in CodeDeploy).value),
     codedeployStage := {
       val deployment = (codedeployStagingDirectory in CodeDeploy).value
