@@ -15,9 +15,7 @@ case class ContentMapping(
   file: File,
   source: String,
   destination: String
-) {
-  import ContentMapping._
-}
+)
 
 object ContentMapping {
   private[codedeploy] def defaultMappings(
