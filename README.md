@@ -15,6 +15,10 @@ Add the following to your `project/plugins.sbt` file:
 
     addSbtPlugin("com.gilt" % "sbt-codedeploy" % "0.1-SNAPSHOT")
 
+Add to your `build.sbt` or `Build.scala`:
+
+    enablePlugins(CodeDeployPlugin)
+
 SBT CodeDeploy uses the AWS CodeDeploy API to upload the zip to a S3 Bucket (single region-only). You must specify the bucket in your `build.sbt` or `Build.scala`:
 
     codedeployBucket in ThisBuild := "your-codedeploy-bucket-name-here"

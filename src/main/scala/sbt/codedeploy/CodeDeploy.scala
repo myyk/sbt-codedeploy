@@ -4,6 +4,8 @@ import sbt._
 import sbt.Keys._
 import sbt.complete.DefaultParsers
 
+import scala.collection.JavaConversions._
+
 import com.amazonaws.AmazonWebServiceClient
 import com.amazonaws.ClientConfiguration
 
@@ -25,6 +27,7 @@ object CodeDeployPlugin extends AutoPlugin {
     codedeployAWSCredentialsProvider := None,
     codedeployClientConfiguration := None,
     codedeployContentMappings := ContentMapping.defaultMappings(
+      (name in CodeDeploy).value,
       (sourceDirectory in CodeDeploy).value,
       Classpaths.managedJars(Compile, Set("jar"), update.value),
       packagedArtifact.in(Compile, packageBin).value,
@@ -154,8 +157,18 @@ object CodeDeployPlugin extends AutoPlugin {
     ignoreApplicationStopFailures: Boolean,
     log: Logger
   ): CreateDeploymentResult = {
-    val s3Loc = s3Location(s3Bucket, name, version)
-    log.info(s"Creating deployment using revision at ${s3Loc}")
+    val revisions = codeDeployClient.listApplicationRevisions(
+      new ListApplicationRevisionsRequest()
+        .withApplicationName(name)
+        .withS3Bucket(s3Bucket)
+        .withS3KeyPrefix(s3Key(name, version))
+        .withSortBy(ApplicationRevisionSortBy.RegisterTime)
+        .withSortOrder(SortOrder.Descending))
+      .getRevisions
+
+    val revision = revisions.headOption.getOrElse(sys.error(s"There were no registered application revisions at ${s3Location(s3Bucket, name, version)}"))
+    log.info(s"Using application revision ${revision.toString}")
+
     if (ignoreApplicationStopFailures) {
       log.warn(s"This deployment will ignore ApplicationStop failures.")
     }
@@ -163,9 +176,7 @@ object CodeDeployPlugin extends AutoPlugin {
       new CreateDeploymentRequest()
         .withApplicationName(name)
         .withDeploymentGroupName(groupName)
-        .withRevision(new RevisionLocation()
-        .withRevisionType(RevisionLocationType.S3)
-        .withS3Location(s3Loc))
+        .withRevision(revision)
         .withIgnoreApplicationStopFailures(ignoreApplicationStopFailures))
     log.info(s"Created deployment ${result.getDeploymentId}")
     result
