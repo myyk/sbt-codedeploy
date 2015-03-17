@@ -31,6 +31,10 @@ object ScriptMapping {
 
   private[codedeploy] def defaultMappings(sourceDirectory: File) = {
     val scripts = sourceDirectory / "scripts"
+    generateMappingsInDirectory(scripts)
+  }
+
+  def generateMappingsInDirectory(scripts: File) = {
     val relativize = Path.relativeTo(scripts)
     (scripts ***).get.filter(_.isFile).map { file =>
       relativize(file) match {
