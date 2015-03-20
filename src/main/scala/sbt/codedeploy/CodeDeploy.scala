@@ -6,11 +6,13 @@ import sbt.complete.DefaultParsers
 
 import scala.collection.JavaConversions._
 
-import com.amazonaws.{AmazonWebServiceClient,ClientConfiguration}
+import com.amazonaws.AmazonWebServiceClient
+import com.amazonaws.ClientConfiguration
 
 import com.amazonaws.auth.AWSCredentialsProvider
 
-import com.amazonaws.regions.{Region,Regions}
+import com.amazonaws.regions.Region
+import com.amazonaws.regions.Regions
 
 import com.amazonaws.services.codedeploy.AmazonCodeDeployClient
 import com.amazonaws.services.codedeploy.model._
