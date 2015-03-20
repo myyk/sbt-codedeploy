@@ -19,8 +19,8 @@ scalacOptions ++= Seq(
 resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/"
 
 libraryDependencies ++= Seq(
-  "com.amazonaws" % "aws-java-sdk-codedeploy" % "1.9.23",
-  "com.amazonaws" % "aws-java-sdk-s3" % "1.9.23"
+  "com.amazonaws" % "aws-java-sdk-codedeploy" % "1.9.24",
+  "com.amazonaws" % "aws-java-sdk-s3" % "1.9.24"
 )
 
 homepage := Some(url("https://github.com/gilt/sbt-codedeploy"))
