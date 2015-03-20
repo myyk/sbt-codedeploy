@@ -4,11 +4,7 @@ import scala.collection.mutable.ArrayBuffer
 
 import java.io.File
 
-import sbt.Attributed
-import sbt.AttributeKey
-import sbt.Artifact
-import sbt.ModuleID
-import sbt.Path
+import sbt.{Attributed,Artifact,ModuleID,Path}
 import sbt.Path._
 
 case class ContentMapping(

@@ -2,9 +2,7 @@ import java.net.InetSocketAddress
 
 import java.util.concurrent.CountDownLatch
 
-import com.sun.net.httpserver.HttpExchange
-import com.sun.net.httpserver.HttpHandler
-import com.sun.net.httpserver.HttpServer
+import com.sun.net.httpserver.{HttpExchange,HttpHandler,HttpServer}
 
 object ExampleMain extends App {
   val server = HttpServer.create(
