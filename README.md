@@ -11,8 +11,6 @@ This plugin intereacts with AWS resources. You will be billed for the AWS resour
 
 Add the following to your `project/plugins.sbt` file:
 
-    resolvers += Resolver.sonatypeRepo("snapshot")
-
     addSbtPlugin("com.gilt" % "sbt-codedeploy" % "0.1")
 
 Add to your `build.sbt` or `Build.scala`:
