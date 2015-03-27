@@ -42,7 +42,7 @@ A simple project might have structure like this in addition to it's regular proj
     /src/codedeploy/scripts/ApplicationStart/
     /src/codedeploy/scripts/ValidateService/
 
-## Source Diectory
+## Source Directory
 
 This is the folder where 'content' and `scripts` should exist.
 
