@@ -1,4 +1,17 @@
-This is your new Play application
-=================================
+#Prerequisites:
 
-This file will be packaged with your application, when using `activator dist`.
+* AWS CodeDeploy Application and Deployment Group
+* S3 bucket
+
+#Usage:
+
+    sbt
+    > project playExample
+    > codedeployPush
+    > codedeployCreateDeployment Test
+
+#Verify:
+
+SSH into instance and check that a response comes back from the play server.
+
+    curl localhost:9000
