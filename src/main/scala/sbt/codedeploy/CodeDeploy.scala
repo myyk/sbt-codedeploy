@@ -258,17 +258,18 @@ object CodeDeployPlugin extends AutoPlugin {
     scripts: Seq[ScriptMapping]
   ): Unit = {
     appspec ++= "hooks:\n"
-    var section: String = null
     // sort includes location so that scripts for
     // each hook will run in lexicograpic order
-    scripts.sortBy(script => script.section + script.location).foreach { script =>
-      if (script.section != section) {
-        section = script.section
-        appspec ++= s"  ${section}:\n"
+    for {
+      (section, scripts) <- scripts.groupBy(_.section).toSeq.sortBy { case (section, _) => section }
+    } {
+      appspec ++=   s"  ${section}:\n"
+      
+      scripts.sortBy(script => script.location).foreach { script =>
+        appspec ++= s"""    - location: ${script.location}\n"""
+        appspec ++= s"""      timeout: ${script.timeout}\n"""
+        appspec ++= s"""      runas: ${script.runas}\n"""
       }
-      appspec ++= s"""    - location: ${script.location}\n"""
-      appspec ++= s"""      timeout: ${script.timeout}\n"""
-      appspec ++= s"""      runas: ${script.runas}\n"""
     }
   }
 

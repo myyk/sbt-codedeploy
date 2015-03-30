@@ -3,6 +3,7 @@
 Creates zip files for usage with AWS CodeDeploy. Uses defaults that support conventions set forth in the AWS CodeDeploy docs.
 
 [![Build Status](https://travis-ci.org/gilt/sbt-codedeploy.svg)](https://travis-ci.org/search/sbt-codedeploy)
+[![Codacy Badge](https://www.codacy.com/project/badge/88654d225b494663820bd3fec9bcf8a7)](https://www.codacy.com/public/myykseok/sbt-codedeploy)
 
 # WARNING
 This plugin intereacts with AWS resources. You will be billed for the AWS resources used by using this plugin. 
