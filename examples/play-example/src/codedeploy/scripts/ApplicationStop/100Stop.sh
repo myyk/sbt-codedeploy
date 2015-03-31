@@ -1,5 +1,5 @@
-#!/bin/bash
+!/bin/bash
 
-#set -x
+set -x
 
-#stop /usr/share/play-example/bin/play-example
+stop play-example
