@@ -12,7 +12,7 @@ This plugin intereacts with AWS resources. You will be billed for the AWS resour
 
 Add the following to your `project/plugins.sbt` file:
 
-    addSbtPlugin("com.gilt" % "sbt-codedeploy" % "0.1")
+    addSbtPlugin("com.gilt" % "sbt-codedeploy" % "0.2")
 
 Add to your `build.sbt` or `Build.scala`:
 
