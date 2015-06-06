@@ -25,6 +25,8 @@ libraryDependencies ++= Seq(
   "com.amazonaws" % "aws-java-sdk-s3" % awsSdkVersion
 )
 
+addSbtPlugin("com.gilt" % "sbt-cloudformation" % "0.4.0")
+
 homepage := Some(url("https://github.com/gilt/sbt-codedeploy"))
 
 licenses := Seq("MIT" -> url("https://raw.githubusercontent.com/gilt/sbt-codedeploy/master/LICENSE"))

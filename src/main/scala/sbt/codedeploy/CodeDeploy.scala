@@ -4,6 +4,7 @@ import sbt._
 import sbt.Keys._
 import sbt.complete.DefaultParsers
 
+import scala.util._
 import scala.collection.JavaConversions._
 
 import com.amazonaws.AmazonWebServiceClient
@@ -19,6 +20,8 @@ import com.amazonaws.services.codedeploy.model._
 
 import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model._
+
+import com.github.tptodorov.sbt.cloudformation.Import.Configurations._
 
 object CodeDeployPlugin extends AutoPlugin {
   object autoImport {
@@ -38,7 +41,8 @@ object CodeDeployPlugin extends AutoPlugin {
     val codedeployZip = taskKey[Unit]("Create a zip from a staged deployment.")
     val codedeployZipFile = taskKey[File]("Location of the deployment zip.")
 
-    val codedeployCreateApplication = taskKey[Application]("Create a new Application if it doesn't already exist in AWS Code Deploy.")
+    val codedeployCreateApplication = taskKey[ApplicationInfo]("Create a new Application if it doesn't already exist in AWS Code Deploy.")
+    val codedeployCreateDeploymentGroup = taskKey[DeploymentGroupInfo]("Create a new DeploymentGroup if it doesn't already exist in AWS Code Deploy.")
     val codedeployPush = taskKey[Unit]("Push a revision to AWS Code Deploy.")
     val codedeployCreateDeployment = inputKey[Unit]("Deploy to the given deployment group.")
   }
@@ -151,6 +155,22 @@ object CodeDeployPlugin extends AutoPlugin {
       (baseDirectory in CodeDeploy).value / "src" / "codedeploy"
     },
     target in CodeDeploy := target.value / "codedeploy"
+  ) ++ makeCodeDeployConfig(Staging) ++ makeCodeDeployConfig(Production)
+
+  def makeCodeDeployConfig(config: Configuration) = Seq(
+    codedeployCreateDeploymentGroup := {
+      getOrCreateDeploymentGroup(
+        createAWSClient(
+          classOf[AmazonCodeDeployClient],
+          (codedeployRegion in CodeDeploy).value,
+          (codedeployAWSCredentialsProvider in CodeDeploy).value.orNull,
+          (codedeployClientConfiguration in CodeDeploy).value.orNull
+        ),
+        (name in CodeDeploy).value,
+        config.name,
+        (streams in CodeDeploy).value.log
+      )
+    }
   )
 
   private val deployArgsParser = {
@@ -189,29 +209,42 @@ object CodeDeployPlugin extends AutoPlugin {
     s"${name}/codedeploy-revisions/${version}.zip"
   }
 
-  private def getOrCreateApplicatio(
+  private def getOrCreateApplication(
     codeDeployClient: AmazonCodeDeployClient,
     name: String,
     log: Logger
-  ): Application = {
-    val existingApplication = Option(codeDeployClient.getApplication(
+  ): ApplicationInfo = {
+    val existingApplication = Try(codeDeployClient.getApplication(
         new GetApplicationRequest()
           .withApplicationName(name)
       ).getApplication
-    ) //TODO: Maybe try/catch instead
+    )
+
     existingApplication match {
-      case Some(existingApp) =>
-        log.info(s"Not creating application $name in CodeDeploy since it already exists.")
+      case Success(existingApp) =>
+        log.info(s"Application $name in exists in CodeDeploy.")
         existingApp
-      case None =>
+      case Failure(ex: ApplicationDoesNotExistException) =>
         log.info(s"Creating application $name in CodeDeploy.")
-        val app = codeDeployClient.createApplication(
+        codeDeployClient.createApplication(
           new CreateApplicationRequest()
             .withApplicationName(name)
-        ).getApplication
+        )
         log.info(s"Created application $name in CodeDeploy successfully.")
-        app
+
+        getOrCreateApplication(codeDeployClient, name, log)
+      case Failure(ex) =>
+        throw ex
     }
+  }
+
+  private def getOrCreateDeploymentGroup(
+    codeDeployClient: AmazonCodeDeployClient,
+    name: String,
+    deploymentGroupName: String,
+    log: Logger
+  ): DeploymentGroupInfo = {
+    ???
   }
 
   private def deploy(
