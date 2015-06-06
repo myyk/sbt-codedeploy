@@ -32,13 +32,14 @@ object CodeDeployPlugin extends AutoPlugin {
 
     val codedeployContentMappings = taskKey[Seq[ContentMapping]]("Mappings for code deploy content (i.e. the files section).")
     val codedeployPermissionMappings = taskKey[Seq[PermissionMapping]]("Specify code deploy permissions.")
-    val codedeployPush = taskKey[Unit]("Push a revision to AWS Code Deploy.")
     val codedeployScriptMappings = taskKey[Seq[ScriptMapping]]("Mappings for code deploy hook scripts.")
     val codedeployStage = taskKey[Unit]("Stage a Code Deploy revision in the staging directory.")
     val codedeployStagingDirectory = taskKey[File]("Directory used to stage a Code Deploy revision.")
     val codedeployZip = taskKey[Unit]("Create a zip from a staged deployment.")
     val codedeployZipFile = taskKey[File]("Location of the deployment zip.")
 
+    val codedeployCreateApplication = taskKey[Application]("Create a new Application if it doesn't already exist in AWS Code Deploy.")
+    val codedeployPush = taskKey[Unit]("Push a revision to AWS Code Deploy.")
     val codedeployCreateDeployment = inputKey[Unit]("Deploy to the given deployment group.")
   }
   import autoImport._
@@ -53,6 +54,18 @@ object CodeDeployPlugin extends AutoPlugin {
       packagedArtifact.in(Compile, packageBin).value,
       organization.value,
       version.value),
+    codedeployCreateApplication := {
+      getOrCreateApplication(
+        createAWSClient(
+          classOf[AmazonCodeDeployClient],
+          (codedeployRegion in CodeDeploy).value,
+          (codedeployAWSCredentialsProvider in CodeDeploy).value.orNull,
+          (codedeployClientConfiguration in CodeDeploy).value.orNull
+        ),
+        (name in CodeDeploy).value,
+        (streams in CodeDeploy).value.log
+      )
+    },
     codedeployCreateDeployment := {
       val groupName = deployArgsParser.parsed
       deploy(
@@ -174,6 +187,31 @@ object CodeDeployPlugin extends AutoPlugin {
     version: String
   ): String = {
     s"${name}/codedeploy-revisions/${version}.zip"
+  }
+
+  private def getOrCreateApplicatio(
+    codeDeployClient: AmazonCodeDeployClient,
+    name: String,
+    log: Logger
+  ): Application = {
+    val existingApplication = Option(codeDeployClient.getApplication(
+        new GetApplicationRequest()
+          .withApplicationName(name)
+      ).getApplication
+    ) //TODO: Maybe try/catch instead
+    existingApplication match {
+      case Some(existingApp) =>
+        log.info(s"Not creating application $name in CodeDeploy since it already exists.")
+        existingApp
+      case None =>
+        log.info(s"Creating application $name in CodeDeploy.")
+        val app = codeDeployClient.createApplication(
+          new CreateApplicationRequest()
+            .withApplicationName(name)
+        ).getApplication
+        log.info(s"Created application $name in CodeDeploy successfully.")
+        app
+    }
   }
 
   private def deploy(
