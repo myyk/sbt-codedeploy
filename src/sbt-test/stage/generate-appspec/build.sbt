@@ -1,4 +1,3 @@
-import sbt.codedeploy.Keys._
 import sbt.codedeploy.PermissionMapping
 import sbt.codedeploy.CodeDeployPlugin
 
