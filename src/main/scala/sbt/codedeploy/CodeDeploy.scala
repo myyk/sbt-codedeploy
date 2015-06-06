@@ -15,6 +15,8 @@ import com.amazonaws.auth.AWSCredentialsProvider
 import com.amazonaws.regions.Region
 import com.amazonaws.regions.Regions
 
+import com.amazonaws.services.cloudformation.model.Stack
+
 import com.amazonaws.services.codedeploy.AmazonCodeDeployClient
 import com.amazonaws.services.codedeploy.model._
 
@@ -22,6 +24,7 @@ import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model._
 
 import com.github.tptodorov.sbt.cloudformation.Import.Configurations._
+import com.github.tptodorov.sbt.cloudformation.Import.Keys.stackDescribe
 
 object CodeDeployPlugin extends AutoPlugin {
   object autoImport {
@@ -159,6 +162,7 @@ object CodeDeployPlugin extends AutoPlugin {
 
   def makeCodeDeployConfig(config: Configuration) = Seq(
     codedeployCreateDeploymentGroup := {
+      val stack = (stackDescribe in config).value.getOrElse(throw new IllegalStateException(s"Stack ${config.name} does not exists, but should exist. Try running: ${config.name}:createStack"))
       getOrCreateDeploymentGroup(
         createAWSClient(
           classOf[AmazonCodeDeployClient],
@@ -168,6 +172,7 @@ object CodeDeployPlugin extends AutoPlugin {
         ),
         (name in CodeDeploy).value,
         config.name,
+        stack,
         (streams in CodeDeploy).value.log
       )
     }
@@ -240,11 +245,47 @@ object CodeDeployPlugin extends AutoPlugin {
 
   private def getOrCreateDeploymentGroup(
     codeDeployClient: AmazonCodeDeployClient,
-    name: String,
+    applicationName: String,
     deploymentGroupName: String,
+    stack: Stack,
     log: Logger
   ): DeploymentGroupInfo = {
-    ???
+    val autoScalingGroup = getStackOutput("AutoScalingGroupArn", stack)
+    val serviceRoleArn = getStackOutput("CodeDeployTrustRoleARN", stack)
+
+    val existingDeploymentGroup = Try(codeDeployClient.getDeploymentGroup(
+        new GetDeploymentGroupRequest()
+          .withApplicationName(applicationName)
+          .withDeploymentGroupName(deploymentGroupName)
+      ).getDeploymentGroupInfo
+    )
+
+    existingDeploymentGroup match {
+      case Success(existingDeploymentGroup) =>
+        log.info(s"DeploymentGroup $deploymentGroupName of Applicaton $applicationName exists in CodeDeploy.")
+        existingDeploymentGroup
+      case Failure(ex: DeploymentGroupDoesNotExistException) =>
+        log.info(s"Creating DeploymentGroup $deploymentGroupName of Applicaton $applicationName in CodeDeploy.")
+        codeDeployClient.createDeploymentGroup(
+          new CreateDeploymentGroupRequest()
+            .withApplicationName(applicationName)
+            .withDeploymentGroupName(deploymentGroupName)
+            .withAutoScalingGroups(autoScalingGroup)
+            .withServiceRoleArn(serviceRoleArn)
+        )
+        log.info(s"Created DeploymentGroup $deploymentGroupName of Applicaton $applicationName in CodeDeploy successfully.")
+
+        getOrCreateDeploymentGroup(codeDeployClient, applicationName, deploymentGroupName, stack, log)
+      case Failure(ex) =>
+        throw ex
+    }
+  }
+
+  private def getStackOutput(
+    key: String,
+    stack: Stack
+  ): String = {
+    stack.getOutputs.find(_.getOutputKey == key).map(_.getOutputValue).getOrElse(throw new IllegalStateException(s"Stack requires an output with key = [$key]."))
   }
 
   private def deploy(
