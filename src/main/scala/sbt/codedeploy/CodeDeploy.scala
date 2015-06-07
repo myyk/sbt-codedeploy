@@ -73,23 +73,6 @@ object CodeDeployPlugin extends AutoPlugin {
         (streams in CodeDeploy).value.log
       )
     },
-    codedeployCreateDeployment := {
-      val groupName = deployArgsParser.parsed
-      deploy(
-        createAWSClient(
-          classOf[AmazonCodeDeployClient],
-          (codedeployRegion in CodeDeploy).value,
-          (codedeployAWSCredentialsProvider in CodeDeploy).value.orNull,
-          (codedeployClientConfiguration in CodeDeploy).value.orNull
-        ),
-        (name in CodeDeploy).value,
-        (codedeployBucket in CodeDeploy).value,
-        (version in CodeDeploy).value,
-        groupName,
-        (codedeployIgnoreApplicationStopFailures in CodeDeploy).value,
-        (streams in CodeDeploy).value.log
-      ).getDeploymentId
-    },
     codedeployIgnoreApplicationStopFailures := false,
     codedeployPermissionMappings := PermissionMapping.defaultMappings(
       (sourceDirectory in CodeDeploy).value),
@@ -161,7 +144,27 @@ object CodeDeployPlugin extends AutoPlugin {
   ) ++ makeCodeDeployConfig(Staging) ++ makeCodeDeployConfig(Production)
 
   def makeCodeDeployConfig(config: Configuration) = Seq(
-    codedeployCreateDeploymentGroup := {
+    codedeployCreateDeployment in config := {
+      // The Application and DeploymentGroup should be created in CodeDeploy first
+      codedeployCreateApplication.value
+      (codedeployCreateDeploymentGroup in config).value
+
+      deploy(
+        createAWSClient(
+          classOf[AmazonCodeDeployClient],
+          (codedeployRegion in CodeDeploy).value,
+          (codedeployAWSCredentialsProvider in CodeDeploy).value.orNull,
+          (codedeployClientConfiguration in CodeDeploy).value.orNull
+        ),
+        (name in CodeDeploy).value,
+        (codedeployBucket in CodeDeploy).value,
+        (version in CodeDeploy).value,
+        config.name,
+        (codedeployIgnoreApplicationStopFailures in CodeDeploy).value,
+        (streams in CodeDeploy).value.log
+      ).getDeploymentId
+    },
+    codedeployCreateDeploymentGroup in config := {
       val stack = (stackDescribe in config).value.getOrElse(throw new IllegalStateException(s"Stack ${config.name} does not exists, but should exist. Try running: ${config.name}:createStack"))
       getOrCreateDeploymentGroup(
         createAWSClient(
@@ -250,9 +253,6 @@ object CodeDeployPlugin extends AutoPlugin {
     stack: Stack,
     log: Logger
   ): DeploymentGroupInfo = {
-    val autoScalingGroup = getStackOutput("AutoScalingGroupArn", stack)
-    val serviceRoleArn = getStackOutput("CodeDeployTrustRoleARN", stack)
-
     val existingDeploymentGroup = Try(codeDeployClient.getDeploymentGroup(
         new GetDeploymentGroupRequest()
           .withApplicationName(applicationName)
@@ -266,6 +266,9 @@ object CodeDeployPlugin extends AutoPlugin {
         existingDeploymentGroup
       case Failure(ex: DeploymentGroupDoesNotExistException) =>
         log.info(s"Creating DeploymentGroup $deploymentGroupName of Applicaton $applicationName in CodeDeploy.")
+        val autoScalingGroup = getStackOutput("AutoScalingGroupArn", stack)
+        val serviceRoleArn = getStackOutput("CodeDeployTrustRoleArn", stack)
+
         codeDeployClient.createDeploymentGroup(
           new CreateDeploymentGroupRequest()
             .withApplicationName(applicationName)
