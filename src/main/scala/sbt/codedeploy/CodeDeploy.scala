@@ -51,6 +51,9 @@ object CodeDeployPlugin extends AutoPlugin {
   }
   import autoImport._
 
+  //TODO: Add sbt-cloudformation once it's a proper AutoPlugin
+  override def trigger = allRequirements
+
   override def projectSettings = Seq(
     codedeployAWSCredentialsProvider := None,
     codedeployClientConfiguration := None,
