@@ -12,7 +12,7 @@ This plugin intereacts with AWS resources. You will be billed for the AWS resour
 
 Add the following to your `project/plugins.sbt` file:
 
-    addSbtPlugin("com.gilt" % "sbt-codedeploy" % "0.3.0")
+    addSbtPlugin("com.gilt" % "sbt-codedeploy" % "0.4.0")
 
 Add to your `build.sbt` or `Build.scala`:
 
@@ -23,8 +23,6 @@ SBT CodeDeploy uses the AWS CodeDeploy API to upload the zip to a S3 Bucket (sin
     codedeployBucket in ThisBuild := "your-codedeploy-bucket-name-here"
 
 ## AWS Setup
-
-It's expected that you have an AWS CodeDeploy Application already created and a DepoloymentGroup.
 
 You'll also need to have AWS Credentials setup with enough privileges for the sbt-codedeploy to modify your AWS resources. Some great resources for this are::
 - [AWS CodeDeploy Getting Started](http://docs.aws.amazon.com/codedeploy/latest/userguide/getting-started-setup.html)
@@ -103,6 +101,15 @@ Default: false
 
 Override: `codedeployIgnoreApplicationStopFailures`
 
+## DeploymentGroups
+
+There is an sbt configuration tied to each DeploymentGroup. `staging` and `production` are provided. If you need anything else you just add this to your `build.sbt`. You can add as many DeploymentGroups as you need.
+
+    lazy val DeploymentGroupName = config("deploymentGroupName")
+    GiltCodedeployPlugin.makeCodeDeployConfig(DeploymentGroupName)
+
+If these configs are common with the `sbt-cloudformation` configs, they can be used to create DeploymentGroups through the plugin. In the CloudFormation stack associated with the config, the outputs `"AutoScalingGroupArn"` and `"CodeDeployTrustRoleArm"` must be set.
+
 # Usage
 
 ## Push
@@ -115,9 +122,15 @@ If you just want to create the zip and push it to your configured S3 bucket use 
 
 To create a deployment the `codedeployCreateDeployment` task needs the name of the CodeDeploy DeploymentGroup to deploy to. You must call `codedeployPush` first to make sure the application revision is available.
 
-    sbt “codedeployCreateDeployment test”
+    sbt “staging:codedeployCreateDeployment”
 
-You may want to create a new alias such as `deploy-test` to clean up the verbose syntax for your specific use case.
+Or
+
+    sbt “production:codedeployCreateDeployment”
+
+You may want to create a new alias such as `deploy-staging` to clean up the verbose syntax for your specific use case.
+
+Note: `codedeployCreateDeployment` will create an Application if one does not already exist for the project. It will also try to create a DeploymentGroup if one doesn't already exist with the same name as the config, such as `production`.
 
 **This call does not block for the deployment to finish.**
 

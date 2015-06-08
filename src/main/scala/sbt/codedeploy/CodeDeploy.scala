@@ -4,6 +4,7 @@ import sbt._
 import sbt.Keys._
 import sbt.complete.DefaultParsers
 
+import scala.util._
 import scala.collection.JavaConversions._
 
 import com.amazonaws.AmazonWebServiceClient
@@ -14,14 +15,44 @@ import com.amazonaws.auth.AWSCredentialsProvider
 import com.amazonaws.regions.Region
 import com.amazonaws.regions.Regions
 
+import com.amazonaws.services.cloudformation.model.Stack
+
 import com.amazonaws.services.codedeploy.AmazonCodeDeployClient
 import com.amazonaws.services.codedeploy.model._
 
 import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model._
 
+import com.github.tptodorov.sbt.cloudformation.Import.Configurations._
+import com.github.tptodorov.sbt.cloudformation.Import.Keys.stackDescribe
+
 object CodeDeployPlugin extends AutoPlugin {
-  import sbt.codedeploy.Keys._
+  object autoImport {
+    val CodeDeploy = config("codedeploy")
+
+    val codedeployAWSCredentialsProvider = settingKey[Option[AWSCredentialsProvider]]("AWS credentials provider used by AWS Code Deploy.")
+    val codedeployBucket = settingKey[String]("S3 bucket used by AWS Code Deploy.")
+    val codedeployClientConfiguration = settingKey[Option[ClientConfiguration]]("Client configuration used by AWS Code Deploy.")
+    val codedeployRegion = settingKey[Regions]("AWS region used by AWS Code Deploy.")
+    val codedeployIgnoreApplicationStopFailures = settingKey[Boolean]("Whether to ignore application stop failures during deploy.")
+
+    val codedeployContentMappings = taskKey[Seq[ContentMapping]]("Mappings for code deploy content (i.e. the files section).")
+    val codedeployPermissionMappings = taskKey[Seq[PermissionMapping]]("Specify code deploy permissions.")
+    val codedeployScriptMappings = taskKey[Seq[ScriptMapping]]("Mappings for code deploy hook scripts.")
+    val codedeployStage = taskKey[Unit]("Stage a Code Deploy revision in the staging directory.")
+    val codedeployStagingDirectory = taskKey[File]("Directory used to stage a Code Deploy revision.")
+    val codedeployZip = taskKey[Unit]("Create a zip from a staged deployment.")
+    val codedeployZipFile = taskKey[File]("Location of the deployment zip.")
+
+    val codedeployCreateApplication = taskKey[ApplicationInfo]("Create a new Application if it doesn't already exist in AWS Code Deploy.")
+    val codedeployCreateDeploymentGroup = taskKey[DeploymentGroupInfo]("Create a new DeploymentGroup if it doesn't already exist in AWS Code Deploy.")
+    val codedeployPush = taskKey[Unit]("Push a revision to AWS Code Deploy.")
+    val codedeployCreateDeployment = inputKey[Unit]("Deploy to the given deployment group.")
+  }
+  import autoImport._
+
+  //TODO: Add sbt-cloudformation once it's a proper AutoPlugin
+  override def trigger = allRequirements
 
   override def projectSettings = Seq(
     codedeployAWSCredentialsProvider := None,
@@ -33,9 +64,8 @@ object CodeDeployPlugin extends AutoPlugin {
       packagedArtifact.in(Compile, packageBin).value,
       organization.value,
       version.value),
-    codedeployCreateDeployment := {
-      val groupName = deployArgsParser.parsed
-      deploy(
+    codedeployCreateApplication := {
+      getOrCreateApplication(
         createAWSClient(
           classOf[AmazonCodeDeployClient],
           (codedeployRegion in CodeDeploy).value,
@@ -43,12 +73,8 @@ object CodeDeployPlugin extends AutoPlugin {
           (codedeployClientConfiguration in CodeDeploy).value.orNull
         ),
         (name in CodeDeploy).value,
-        (codedeployBucket in CodeDeploy).value,
-        (version in CodeDeploy).value,
-        groupName,
-        (codedeployIgnoreApplicationStopFailures in CodeDeploy).value,
         (streams in CodeDeploy).value.log
-      ).getDeploymentId
+      )
     },
     codedeployIgnoreApplicationStopFailures := false,
     codedeployPermissionMappings := PermissionMapping.defaultMappings(
@@ -118,6 +144,44 @@ object CodeDeployPlugin extends AutoPlugin {
       (baseDirectory in CodeDeploy).value / "src" / "codedeploy"
     },
     target in CodeDeploy := target.value / "codedeploy"
+  ) ++ makeCodeDeployConfig(Staging) ++ makeCodeDeployConfig(Production)
+
+  def makeCodeDeployConfig(config: Configuration) = Seq(
+    codedeployCreateDeployment in config := {
+      // The Application and DeploymentGroup should be created in CodeDeploy first
+      codedeployCreateApplication.value
+      (codedeployCreateDeploymentGroup in config).value
+
+      deploy(
+        createAWSClient(
+          classOf[AmazonCodeDeployClient],
+          (codedeployRegion in CodeDeploy).value,
+          (codedeployAWSCredentialsProvider in CodeDeploy).value.orNull,
+          (codedeployClientConfiguration in CodeDeploy).value.orNull
+        ),
+        (name in CodeDeploy).value,
+        (codedeployBucket in CodeDeploy).value,
+        (version in CodeDeploy).value,
+        config.name,
+        (codedeployIgnoreApplicationStopFailures in CodeDeploy).value,
+        (streams in CodeDeploy).value.log
+      ).getDeploymentId
+    },
+    codedeployCreateDeploymentGroup in config := {
+      val stack = (stackDescribe in config).value.getOrElse(throw new IllegalStateException(s"Stack ${config.name} does not exists, but should exist. Try running: ${config.name}:createStack"))
+      getOrCreateDeploymentGroup(
+        createAWSClient(
+          classOf[AmazonCodeDeployClient],
+          (codedeployRegion in CodeDeploy).value,
+          (codedeployAWSCredentialsProvider in CodeDeploy).value.orNull,
+          (codedeployClientConfiguration in CodeDeploy).value.orNull
+        ),
+        (name in CodeDeploy).value,
+        config.name,
+        stack,
+        (streams in CodeDeploy).value.log
+      )
+    }
   )
 
   private val deployArgsParser = {
@@ -154,6 +218,80 @@ object CodeDeployPlugin extends AutoPlugin {
     version: String
   ): String = {
     s"${name}/codedeploy-revisions/${version}.zip"
+  }
+
+  private def getOrCreateApplication(
+    codeDeployClient: AmazonCodeDeployClient,
+    name: String,
+    log: Logger
+  ): ApplicationInfo = {
+    val existingApplication = Try(codeDeployClient.getApplication(
+        new GetApplicationRequest()
+          .withApplicationName(name)
+      ).getApplication
+    )
+
+    existingApplication match {
+      case Success(existingApp) =>
+        log.info(s"Application $name in exists in CodeDeploy.")
+        existingApp
+      case Failure(ex: ApplicationDoesNotExistException) =>
+        log.info(s"Creating application $name in CodeDeploy.")
+        codeDeployClient.createApplication(
+          new CreateApplicationRequest()
+            .withApplicationName(name)
+        )
+        log.info(s"Created application $name in CodeDeploy successfully.")
+
+        getOrCreateApplication(codeDeployClient, name, log)
+      case Failure(ex) =>
+        throw ex
+    }
+  }
+
+  private def getOrCreateDeploymentGroup(
+    codeDeployClient: AmazonCodeDeployClient,
+    applicationName: String,
+    deploymentGroupName: String,
+    stack: Stack,
+    log: Logger
+  ): DeploymentGroupInfo = {
+    val existingDeploymentGroup = Try(codeDeployClient.getDeploymentGroup(
+        new GetDeploymentGroupRequest()
+          .withApplicationName(applicationName)
+          .withDeploymentGroupName(deploymentGroupName)
+      ).getDeploymentGroupInfo
+    )
+
+    existingDeploymentGroup match {
+      case Success(existingDeploymentGroup) =>
+        log.info(s"DeploymentGroup $deploymentGroupName of Applicaton $applicationName exists in CodeDeploy.")
+        existingDeploymentGroup
+      case Failure(ex: DeploymentGroupDoesNotExistException) =>
+        log.info(s"Creating DeploymentGroup $deploymentGroupName of Applicaton $applicationName in CodeDeploy.")
+        val autoScalingGroup = getStackOutput("AutoScalingGroupArn", stack)
+        val serviceRoleArn = getStackOutput("CodeDeployTrustRoleArn", stack)
+
+        codeDeployClient.createDeploymentGroup(
+          new CreateDeploymentGroupRequest()
+            .withApplicationName(applicationName)
+            .withDeploymentGroupName(deploymentGroupName)
+            .withAutoScalingGroups(autoScalingGroup)
+            .withServiceRoleArn(serviceRoleArn)
+        )
+        log.info(s"Created DeploymentGroup $deploymentGroupName of Applicaton $applicationName in CodeDeploy successfully.")
+
+        getOrCreateDeploymentGroup(codeDeployClient, applicationName, deploymentGroupName, stack, log)
+      case Failure(ex) =>
+        throw ex
+    }
+  }
+
+  private def getStackOutput(
+    key: String,
+    stack: Stack
+  ): String = {
+    stack.getOutputs.find(_.getOutputKey == key).map(_.getOutputValue).getOrElse(throw new IllegalStateException(s"Stack requires an output with key = [$key]."))
   }
 
   private def deploy(
