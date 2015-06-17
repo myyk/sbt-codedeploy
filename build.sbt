@@ -10,6 +10,8 @@ organization := "com.github.myyk"
 
 sbtPlugin := true
 
+bintrayPackageLabels := Seq("aws", "cloudformation")
+
 scalacOptions ++= Seq(
   "-language:postfixOps",
   "-feature",
@@ -25,6 +27,7 @@ libraryDependencies ++= Seq(
   "com.amazonaws" % "aws-java-sdk-s3" % awsSdkVersion
 )
 
+resolvers += Resolver.url("myyk-bintray-sbt-plugins", url("https://dl.bintray.com/myyk/sbt-plugins/"))(Resolver.ivyStylePatterns)
 addSbtPlugin("com.github.myyk" % "sbt-cloudformation" % "0.5.0")
 
 homepage := Some(url("https://github.com/gilt/sbt-codedeploy"))
