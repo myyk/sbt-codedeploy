@@ -6,7 +6,7 @@ ReleaseKeys.publishArtifactsAction := PgpKeys.publishSigned.value
 
 name := "sbt-codedeploy"
 
-organization := "com.gilt"
+organization := "com.github.myyk"
 
 sbtPlugin := true
 
@@ -18,26 +18,18 @@ scalacOptions ++= Seq(
 
 resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/"
 
-val awsSdkVersion = "1.9.39"
+val awsSdkVersion = "1.9.40"
 
 libraryDependencies ++= Seq(
   "com.amazonaws" % "aws-java-sdk-codedeploy" % awsSdkVersion,
   "com.amazonaws" % "aws-java-sdk-s3" % awsSdkVersion
 )
 
-addSbtPlugin("com.github.tptodorov" % "sbt-cloudformation" % "0.4.0")
+addSbtPlugin("com.github.myyk" % "sbt-cloudformation" % "0.5.0")
 
 homepage := Some(url("https://github.com/gilt/sbt-codedeploy"))
 
-licenses := Seq("MIT" -> url("https://raw.githubusercontent.com/gilt/sbt-codedeploy/master/LICENSE"))
-
-publishTo := Some {
-  val nexus = "https://oss.sonatype.org/"
-  if (isSnapshot.value)
-    "snapshots" at nexus + "content/repositories/snapshots"
-  else
-    "releases" at nexus + "service/local/staging/deploy/maven2"
-}
+licenses += ("MIT", url("http://opensource.org/licenses/MIT"))
 
 pomExtra := (
   <scm>
