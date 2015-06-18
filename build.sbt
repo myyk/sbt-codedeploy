@@ -1,6 +1,4 @@
-releaseSettings
-
-ReleaseKeys.publishArtifactsAction := PgpKeys.publishSigned.value
+releasePublishArtifactsAction := PgpKeys.publishSigned.value
 
 name := "sbt-codedeploy"
 
@@ -18,7 +16,7 @@ scalacOptions ++= Seq(
 
 resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/"
 
-val awsSdkVersion = "1.9.40"
+val awsSdkVersion = "1.10.0"
 
 libraryDependencies ++= Seq(
   "com.amazonaws" % "aws-java-sdk-codedeploy" % awsSdkVersion,
