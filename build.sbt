@@ -1,7 +1,5 @@
 releaseSettings
 
-sonatypeSettings
-
 ReleaseKeys.publishArtifactsAction := PgpKeys.publishSigned.value
 
 name := "sbt-codedeploy"
