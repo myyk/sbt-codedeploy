@@ -1,3 +1,3 @@
-addSbtPlugin("com.gilt" % "sbt-codedeploy" % sys.props("project.version"))
+addSbtPlugin("com.github.myyk" % "sbt-codedeploy" % sys.props("project.version"))
 
-addSbtPlugin("com.github.tptodorov" % "sbt-cloudformation" % "0.4.0")
+addSbtPlugin("com.github.myyk" % "sbt-cloudformation" % "0.5.0")
