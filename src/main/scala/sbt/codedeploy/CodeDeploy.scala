@@ -23,8 +23,8 @@ import com.amazonaws.services.codedeploy.model._
 import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model._
 
-import com.github.tptodorov.sbt.cloudformation.Import.Configurations._
-import com.github.tptodorov.sbt.cloudformation.Import.Keys.stackDescribe
+import com.github.tptodorov.sbt.cloudformation.CloudFormation
+import com.github.tptodorov.sbt.cloudformation.CloudFormation.autoImport._
 
 object CodeDeployPlugin extends AutoPlugin {
   object autoImport {
@@ -51,7 +51,7 @@ object CodeDeployPlugin extends AutoPlugin {
   }
   import autoImport._
 
-  //TODO: Add sbt-cloudformation once it's a proper AutoPlugin
+  override def requires = CloudFormation
   override def trigger = allRequirements
 
   override def projectSettings = Seq(
