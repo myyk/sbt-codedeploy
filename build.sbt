@@ -16,7 +16,7 @@ scalacOptions ++= Seq(
 
 resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/"
 
-val awsSdkVersion = "1.10.0"
+val awsSdkVersion = "1.10.68"
 
 libraryDependencies ++= Seq(
   "com.amazonaws" % "aws-java-sdk-codedeploy" % awsSdkVersion,
@@ -24,7 +24,7 @@ libraryDependencies ++= Seq(
 )
 
 resolvers += Resolver.url("myyk-bintray-sbt-plugins", url("https://dl.bintray.com/myyk/sbt-plugins/"))(Resolver.ivyStylePatterns)
-addSbtPlugin("com.github.myyk" % "sbt-cloudformation" % "0.5.1")
+addSbtPlugin("com.github.tptodorov" % "sbt-cloudformation" % "0.7.1")
 
 homepage := Some(url("https://github.com/gilt/sbt-codedeploy"))
 

@@ -51,9 +51,8 @@ object CodeDeployPlugin extends AutoPlugin {
   }
   import autoImport._
 
-  override def trigger = allRequirements
-
   override def requires = CloudFormation
+  override def trigger = allRequirements
 
   override def projectSettings = Seq(
     codedeployAWSCredentialsProvider := None,
