@@ -13,12 +13,16 @@ This plugin intereacts with AWS resources. You will be billed for the AWS resour
 Add the following to your `project/plugins.sbt` file:
 
     resolvers += Resolver.url("myyk-bintray-sbt-plugins", url("https://dl.bintray.com/myyk/sbt-plugins/"))(Resolver.ivyStylePatterns)
-    addSbtPlugin("com.github.myyk" % "sbt-cloudformation" % "0.5.1")
-    addSbtPlugin("com.github.myyk" % "sbt-codedeploy" % "0.4.2")
+    addSbtPlugin("com.github.myyk" % "sbt-cloudformation" % "0.7.1")
+    addSbtPlugin("com.github.myyk" % "sbt-codedeploy" % "0.4.3")
 
 SBT CodeDeploy uses the AWS CodeDeploy API to upload the zip to a S3 Bucket (single region-only). You must specify the bucket in your `build.sbt` or `Build.scala`:
 
     codedeployBucket in ThisBuild := "your-codedeploy-bucket-name-here"
+
+You must specify the region in your `build.sbt` or `Build.scala`:
+
+    stackRegion := "US_EAST_1"
 
 ## AWS Setup
 
@@ -136,9 +140,9 @@ Note: `codedeployCreateDeployment` will create an Application if one does not al
 
 ## AWS Region
 
-By default, the US East 1 region is used as it's the default in the SDK.
+By default, uses the region used by `sbt-cloudformation`. 
 
-To override in `build.sbt` or `Build.scala`:
+To override this behavior in `build.sbt` or `Build.scala`:
 
     codedeployRegion := com.amazonaws.regions.Regions.US_WEST_2
 
