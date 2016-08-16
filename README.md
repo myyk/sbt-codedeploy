@@ -13,7 +13,7 @@ This plugin intereacts with AWS resources. You will be billed for the AWS resour
 Add the following to your `project/plugins.sbt` file:
 
     resolvers += Resolver.url("myyk-bintray-sbt-plugins", url("https://dl.bintray.com/myyk/sbt-plugins/"))(Resolver.ivyStylePatterns)
-    addSbtPlugin("com.github.myyk" % "sbt-cloudformation" % "0.7.1")
+    addSbtPlugin("com.github.tptodorov" % "sbt-cloudformation" % "0.7.1")
     addSbtPlugin("com.github.myyk" % "sbt-codedeploy" % "0.5.0")
 
 SBT CodeDeploy uses the AWS CodeDeploy API to upload the zip to a S3 Bucket (single region-only). You must specify the bucket in your `build.sbt` or `Build.scala`:
