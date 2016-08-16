@@ -1,8 +1,10 @@
-The plugin is published to Sonatype, using [sbt-sonatype](https://github.com/xerial/sbt-sonatype).
+The plugin is published to Bintray.
 
 ## Publishing
 
-See the [ossrh guide](http://central.sonatype.org/pages/ossrh-guide.html) to create an account with sonatype. Once you have an account you will need to [request access](https://issues.sonatype.org/browse/OSSRH-21756). Finally, generate a pgp key and set up your [sonatype credentials](http://www.scala-sbt.org/release/docs/Using-Sonatype.html).
+Run this to setup your Bintray credentials:
+
+    sbt bintrayChangeCredentials
 
 ## Tagging a New Version
 
