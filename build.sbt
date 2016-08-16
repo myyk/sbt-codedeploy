@@ -16,7 +16,7 @@ scalacOptions ++= Seq(
 
 resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/"
 
-val awsSdkVersion = "1.10.68"
+val awsSdkVersion = "1.11.26"
 
 libraryDependencies ++= Seq(
   "com.amazonaws" % "aws-java-sdk-codedeploy" % awsSdkVersion,
