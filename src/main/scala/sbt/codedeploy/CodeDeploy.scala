@@ -102,7 +102,10 @@ object CodeDeployPlugin extends AutoPlugin {
         (streams in CodeDeploy).value.log
       )
     },
-    codedeployRegion := Regions.US_EAST_1,
+    codedeployRegion := {
+      val region = (stackRegion in CodeDeploy).value
+      Regions.valueOf(region)
+    },
     codedeployScriptMappings := ScriptMapping.defaultMappings(
       (sourceDirectory in CodeDeploy).value),
     codedeployStage := {
