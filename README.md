@@ -87,13 +87,18 @@ Override like this:
 
     name in CodeDeploy := "new-better-shinier-name"
 
-## AWS Profile
+## AWS Credentials Provider
 
-The AWS profile that will be used to when making AWS API calls.
+The AWS credentials provider that will be used to get credentials to make AWS API calls.
 
-Default: "default"
+Default: "None"
 
-Override: `codedeployAwsProfile`
+Override: `codedeployAWSCredentialsProvider`
+
+If overriding, probably want to override it like this in most cases:
+
+    import com.amazonaws.auth.profile.ProfileCredentialsProvider
+    codedeployAWSCredentialsProvider := Some(new ProfileCredentialsProvider("myprofile"))
 
 ## Deployment IgnoreApplicationStopFailures
 
