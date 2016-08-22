@@ -1,6 +1,6 @@
 import sbt.codedeploy.PermissionMapping
 
-stackRegion := "US_EAST_1"
+stackRegion := "us-east-1"
 
 organization := "com.example"
 

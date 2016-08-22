@@ -1,3 +1,3 @@
-stackRegion := "US_EAST_1"
+stackRegion := "us-east-1"
 
 codedeployBucket := "nowhere"

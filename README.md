@@ -22,7 +22,7 @@ SBT CodeDeploy uses the AWS CodeDeploy API to upload the zip to a S3 Bucket (sin
 
 You must specify the region in your `build.sbt` or `Build.scala`:
 
-    stackRegion := "US_EAST_1"
+    stackRegion := "us-east-1"
 
 ## AWS Setup
 

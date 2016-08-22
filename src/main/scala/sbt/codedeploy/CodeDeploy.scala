@@ -104,7 +104,7 @@ object CodeDeployPlugin extends AutoPlugin {
     },
     codedeployRegion := {
       val region = (stackRegion in CodeDeploy).value
-      Regions.valueOf(region)
+      Regions.fromName(region)
     },
     codedeployScriptMappings := ScriptMapping.defaultMappings(
       (sourceDirectory in CodeDeploy).value),
